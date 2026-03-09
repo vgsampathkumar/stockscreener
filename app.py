@@ -148,19 +148,30 @@ with tab2:
                 
                 st.markdown(f"### Analyzing {ticker_input}...")
                 
-                # Show Price Chart
-                with st.expander(f"📈 {ticker_input} 1-Year Price Chart", expanded=True):
-                    try:
-                        import yfinance as yf
-                        hist = yf.Ticker(ticker_input).history(period="1y")
-                        if not hist.empty and 'Close' in hist.columns:
-                            st.line_chart(hist['Close'])
-                        else:
-                            st.info("No historical price data available.")
-                    except Exception as e:
-                        st.warning(f"Could not load chart: {e}")
+                # Show Price Chart and Broker Consensus side-by-side
+                col_chart, col_broker = st.columns([2, 1])
+                
+                with col_chart:
+                    with st.expander(f"📈 {ticker_input} 1-Year Price Chart", expanded=True):
+                        try:
+                            import yfinance as yf
+                            hist = yf.Ticker(ticker_input).history(period="1y")
+                            if not hist.empty and 'Close' in hist.columns:
+                                st.line_chart(hist['Close'])
+                            else:
+                                st.info("No historical price data available.")
+                        except Exception as e:
+                            st.warning(f"Could not load chart: {e}")
+                            
+                with col_broker:
+                    with st.expander("🏦 Wall Street Broker Consensus", expanded=True):
+                        from tools import get_analyst_recommendations
+                        with st.spinner("Fetching broker targets..."):
+                            broker_data = get_analyst_recommendations.invoke({"ticker": ticker_input})
+                            st.markdown(broker_data)
                 
                 # Create empty containers for streaming output
+                st.markdown("### 🤖 AI Agent Analysis")
                 status_container = st.empty()
                 report_container = st.empty()
                 
