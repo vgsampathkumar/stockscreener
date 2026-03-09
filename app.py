@@ -3,6 +3,8 @@ import os
 import json
 from tools import screen_market, fetch_screener_df
 from agent import create_financial_agent, run_analysis
+from portfolio_engine import PaperPortfolio
+from paper_trade_ui import render_paper_trader
 
 st.set_page_config(
     page_title="Agentic Stock Screener & Analyst",
@@ -225,7 +227,17 @@ with st.sidebar:
     st.markdown("3. Enter a **Ticker** to run a comprehensive fundamental analysis and get a Buy/Hold/Sell recommendation.")
 
 # Layout using Tabs for better organization
-tab1, tab2, tab3 = st.tabs(["1️⃣ Stock Screener", "2️⃣ Single Stock Analyst", "3️⃣ Macro Portfolio Analyst"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "1️⃣ Stock Screener", 
+    "2️⃣ Single Stock Analyst", 
+    "3️⃣ Macro Portfolio Analyst",
+    "4️⃣ Paper Trader"
+])
+
+# Initialize Portfolio Engine
+if 'portfolio' not in st.session_state:
+    st.session_state['portfolio'] = PaperPortfolio()
+portfolio = st.session_state['portfolio']
 
 with tab1:
     st.header("Market Screener")
@@ -310,7 +322,19 @@ with tab1:
                 }
             )
             
-            # Pagination controls
+            st.markdown("---")
+            invest_col1, invest_col2 = st.columns([1, 2])
+            with invest_col1:
+                sel_ticker = st.selectbox("Select ticker from above to Paper Trade", df_page['Ticker'].tolist())
+            with invest_col2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("📥 Paper Trade Selected", type="primary", use_container_width=False):
+                    st.session_state['paper_trade_ticker'] = sel_ticker
+                    st.session_state['paper_trade_notes'] = "Found via Screener"
+                    st.session_state['show_order_ticket'] = True
+                    st.success(f"Ready! Switch to the '4️⃣ Paper Trader' tab to buy {sel_ticker}")
+            
+            st.markdown("---")
             pcol1, pcol2, pcol3 = st.columns([1, 2, 1])
             with pcol1:
                 if st.button("◀ Prev", disabled=(page == 0), key="prev_page"):
@@ -383,6 +407,14 @@ with tab2:
                             if msg.type == "ai" and not hasattr(msg, 'tool_calls') or (hasattr(msg, 'tool_calls') and not msg.tool_calls) and msg.content:
                                 status_container.success("Analysis Complete!")
                                 report_container.markdown(f"<div class='result-card'>{msg.content}</div>", unsafe_allow_html=True)
+                                
+                                # Inject Paper Trade button with AI notes
+                                st.markdown("---")
+                                if st.button("📥 Paper Trade This Stock", type="primary"):
+                                    st.session_state['paper_trade_ticker'] = ticker_input
+                                    st.session_state['paper_trade_notes'] = "AI Analyst Recommendation: " + msg.content[:200] + "..."
+                                    st.session_state['show_order_ticket'] = True
+                                    st.success(f"Ready! Switch to '4️⃣ Paper Trader' tab to place order for {ticker_input}")
                     except Exception as e:
                         st.error(f"Error during agent execution: {str(e)}")
                         
@@ -463,7 +495,20 @@ with tab3:
                             if msg.type == "ai" and not hasattr(msg, 'tool_calls') or (hasattr(msg, 'tool_calls') and not msg.tool_calls) and msg.content:
                                 status_container_macro.success("Macro Analysis Complete!")
                                 report_container_macro.markdown(f"<div class='result-card'>{msg.content}</div>", unsafe_allow_html=True)
+                                
+                                st.markdown("---")
+                                if st.button("📥 Execute Plan in Paper Trader", type="primary"):
+                                    # Just takes the first ticker as a quick-start, user can loop
+                                    first_tick = [t.strip() for t in portfolio_input.split(",") if t.strip()][0]
+                                    st.session_state['paper_trade_ticker'] = first_tick
+                                    st.session_state['paper_trade_notes'] = "Macro Plan: " + msg.content[:200] + "..."
+                                    st.session_state['show_order_ticket'] = True
+                                    st.success("Ready! Switch to '4️⃣ Paper Trader' tab to begin executing the plan")
                     except Exception as e:
                         st.error(f"Error during agent execution: {str(e)}")
             except Exception as e:
                 st.error(f"Failed to initialize macro agent: {str(e)}")
+
+with tab4:
+    render_paper_trader(portfolio)
+
