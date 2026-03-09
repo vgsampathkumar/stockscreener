@@ -1,4 +1,4 @@
-from yfinance.screener.screener import EquityQuery, screen
+import yfinance as yf
 from yahooquery import Screener as YQScreener
 import pandas as pd
 from langchain_core.tools import tool
@@ -47,7 +47,8 @@ def fetch_screener_df(asset_class: str = "Stocks", valuation: str = "Undervalued
             return df, f"Top {asset_class} (US)"
         return pd.DataFrame(), f"No data for {asset_class}."
 
-    # Stocks via yfinance EquityQuery
+    # Stocks via yfinance EquityQuery (lazy import for Streamlit Cloud compatibility)
+    from yfinance.screener.screener import EquityQuery, screen
     sector_name = SECTOR_YF_MAP.get(sector)
     operands = [
         EquityQuery('eq', ['region', region_code]),
