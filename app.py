@@ -107,7 +107,7 @@ with tab1:
     st.header("Market Screener")
     st.markdown("Scan the market for potentially undervalued, overvalued, or equal valued stocks, along with top ETFs and Mutual Funds across all sectors.")
     
-    col1a, col1b, col1c = st.columns(3)
+    col1a, col1b, col1c, col1d = st.columns(4)
     with col1a:
         asset_class = st.selectbox("Asset Class", ["Stocks", "ETFs", "Mutual Funds"])
     with col1b:
@@ -124,9 +124,21 @@ with tab1:
         else:
             sector = st.selectbox("Sector", ["N/A"], disabled=True)
             
+    with col1d:
+        supported_regions = [
+            "United States", "India", "United Kingdom", "Germany", 
+            "France", "Canada", "Australia", "Taiwan", "Singapore", "Brazil"
+        ]
+        region_choice = st.selectbox("Market Region", supported_regions)
+            
     if st.button("Run Screener"):
-        with st.spinner(f"Scanning {asset_class}..."):
-            results = screen_market.invoke({"asset_class": asset_class, "valuation": valuation, "sector": sector})
+        with st.spinner(f"Scanning {asset_class} in {region_choice}..."):
+            results = screen_market.invoke({
+                "asset_class": asset_class, 
+                "valuation": valuation, 
+                "sector": sector,
+                "region": region_choice
+            })
             # Remove the HTML div wrapper so Streamlit's markdown parser properly renders the table
             st.markdown("---")
             st.markdown(results)
@@ -200,7 +212,47 @@ with tab3:
     st.header("Macro Portfolio Analyst")
     st.markdown("Analyze your specific holdings against current Fed policy and macroeconomic trends to generate a 5-year risk mitigation and rebalancing plan.")
     
-    portfolio_input = st.text_area("Enter your portfolio tickers (comma separated, e.g., NVDA, AMD, TSM)", value="NVDA, AMD, TSM")
+    # Optional Brokerage CSV Upload
+    uploaded_file = st.file_uploader("📥 Optional: Upload Brokerage Positions (CSV) to auto-fill portfolio", type=["csv"], help="Export 'Positions' from Fidelity, E-Trade, or Schwab as a CSV. This happens 100% locally and securely.")
+    
+    if uploaded_file is not None:
+        import pandas as pd
+        try:
+            # Some brokerages have a few lines of summary at the top before the actual table header.
+            # We explicitly skip bad lines or look for the 'Symbol' column.
+            df = pd.read_csv(uploaded_file, on_bad_lines='skip')
+            
+            # Simple heuristic: find the column that looks like stock symbols
+            symbol_col = None
+            for col in df.columns:
+                # Most brokers export with exactly 'Symbol' or 'Ticker'
+                if str(col).strip().lower() in ['symbol', 'ticker']:
+                    symbol_col = col
+                    break
+                    
+            if symbol_col:
+                # Extract symbols, drop NAs, unique them, strip whitespace, ignore Cash/Core positions usually named 'Pending' or 'Account'
+                symbols = df[symbol_col].dropna().astype(str).tolist()
+                valid_symbols = []
+                for s in symbols:
+                    clean_s = str(s).strip().upper()
+                    # Filter out obvious non-stock rows that brokerages sometimes include
+                    if clean_s and not clean_s.startswith('ACCOUNT') and clean_s != 'PENDING ACTIVITY' and clean_s != 'CORE':
+                        valid_symbols.append(clean_s)
+                        
+                valid_symbols = sorted(list(set(valid_symbols)))
+                if valid_symbols:
+                    st.session_state['portfolio_input'] = ", ".join(valid_symbols)
+                    st.success(f"✅ Successfully extracted {len(valid_symbols)} positions!")
+                else:
+                    st.warning("Found the Symbol column but couldn't extract any valid stock tickers.")
+            else:
+                st.warning("⚠️ Could not find a 'Symbol' or 'Ticker' column in the uploaded file.")
+        except Exception as e:
+            st.error(f"Error parsing file: {e}")
+            
+    default_portfolio = st.session_state.get('portfolio_input', "NVDA, AMD, TSM")
+    portfolio_input = st.text_area("Enter your portfolio tickers (comma separated)", value=default_portfolio)
     horizon = st.selectbox("Investment Horizon", ["5 Years", "3 Years", "10 Years"])
     
     if st.button("Generate Rebalancing Plan", type="primary"):

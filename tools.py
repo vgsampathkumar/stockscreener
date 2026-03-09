@@ -5,15 +5,16 @@ from langchain_core.tools import tool
 import json
 
 @tool
-def screen_market(asset_class: str = "Stocks", valuation: str = "Undervalued", sector: str = "Technology") -> str:
-    """Screens the market based on asset class, valuation category, and sector.
+def screen_market(asset_class: str = "Stocks", valuation: str = "Undervalued", sector: str = "Technology", region: str = "United States") -> str:
+    """Screens the market based on asset class, valuation category, sector, and global region.
     Args:
         asset_class (str): 'Stocks', 'ETFs', or 'Mutual Funds'
         valuation (str): 'Undervalued', 'Overvalued', 'Equal Valued', or 'Any' (primarily for stocks)
         sector (str): The specific sector to screen (e.g. 'Technology', 'Healthcare', 'Financial', 'Energy', 'Consumer Cyclical', etc.)
+        region (str): The global market region (e.g., 'United States', 'India', 'United Kingdom', 'Germany', 'France', 'Canada', 'Australia', 'Taiwan', 'Singapore', 'Brazil')
     """
     try:
-        s = Screener()
+        s = Screener(country=region.lower())
         # Map user friendly sectors to yahooquery endpoints (most sectors map directly to their lowercase names)
         sector_mapping = {
             "Technology": "ms_technology", "Healthcare": "ms_healthcare", "Financial": "ms_financial_services",
@@ -93,9 +94,9 @@ def screen_market(asset_class: str = "Stocks", valuation: str = "Undervalued", s
             display_cols = [rename_map.get(c, c) for c in available_cols]
                 
             res = df[display_cols].to_markdown(index=False)
-            return f"### {valuation} {sector} {asset_class} Screener Results\n\n{res}"
+            return f"### {valuation} {sector} {asset_class} Screener Results ({region})\n\n{res}"
             
-        return f"No results found for {sector} {asset_class} at this time."
+        return f"No results found for {sector} {asset_class} in {region} at this time."
     except Exception as e:
         return f"Error screening market: {str(e)}"
 
