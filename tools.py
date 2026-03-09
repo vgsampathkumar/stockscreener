@@ -1,105 +1,115 @@
-import yfinance as yf
-from yahooquery import Screener
+from yfinance.screener.screener import EquityQuery, screen
+from yahooquery import Screener as YQScreener
 import pandas as pd
 from langchain_core.tools import tool
 import json
+
+REGION_CODE_MAP = {
+    "United States": "us", "India": "in", "United Kingdom": "gb",
+    "Germany": "de", "France": "fr", "Canada": "ca", "Australia": "au",
+    "Taiwan": "tw", "Singapore": "sg", "Brazil": "br",
+    "Japan": "jp", "China": "cn", "South Korea": "kr", "Hong Kong": "hk"
+}
+
+SECTOR_YF_MAP = {
+    "Technology": "Technology", "Healthcare": "Healthcare",
+    "Financial": "Financial Services", "Energy": "Energy",
+    "Consumer Cyclical": "Consumer Cyclical", "Basic Materials": "Basic Materials",
+    "Communication Services": "Communication Services", "Industrials": "Industrials",
+    "Consumer Defensive": "Consumer Defensive", "Real Estate": "Real Estate",
+    "Utilities": "Utilities", "All Stocks": None
+}
+
+RENAME_MAP = {
+    'symbol': 'Ticker', 'shortName': 'Company', 'regularMarketPrice': 'Price',
+    'marketCap': 'Market Cap', 'trailingPE': 'P/E Ratio', 'forwardPE': 'Fwd P/E',
+    'priceToBook': 'P/B Ratio', 'epsTrailingTwelveMonths': 'EPS (TTM)',
+    'dividendYield': 'Div Yield', 'fiftyTwoWeekLow': '52 Wk Low',
+    'fiftyTwoWeekHigh': '52 Wk High', 'beta': 'Beta'
+}
+
+def fetch_screener_df(asset_class: str = "Stocks", valuation: str = "Undervalued",
+                      sector: str = "Technology", region: str = "United States"):
+    """Returns a (pd.DataFrame, title_str) for the given screener parameters.
+    Used by both the AI tool and the Streamlit UI directly."""
+    region_code = REGION_CODE_MAP.get(region, "us")
+
+    # ETFs / Mutual Funds from yahooquery (US-only)
+    if asset_class in ["ETFs", "Mutual Funds"]:
+        s = YQScreener()
+        endpoint = "top_etfs_us" if asset_class == "ETFs" else "top_mutual_funds"
+        data = s.get_screeners(endpoint, count=100)
+        if endpoint in data and 'quotes' in data[endpoint] and data[endpoint]['quotes']:
+            df = pd.DataFrame(data[endpoint]['quotes'])
+            cols = ['symbol', 'shortName', 'regularMarketPrice', 'marketCap', 'yield', 'ytdReturn', 'fiftyTwoWeekLow', 'fiftyTwoWeekHigh']
+            avail = [c for c in cols if c in df.columns]
+            df = df[avail].rename(columns={'symbol': 'Ticker', 'shortName': 'Company', 'regularMarketPrice': 'Price', 'marketCap': 'Market Cap', 'yield': 'Yield', 'ytdReturn': 'YTD Return', 'fiftyTwoWeekLow': '52 Wk Low', 'fiftyTwoWeekHigh': '52 Wk High'})
+            return df, f"Top {asset_class} (US)"
+        return pd.DataFrame(), f"No data for {asset_class}."
+
+    # Stocks via yfinance EquityQuery
+    sector_name = SECTOR_YF_MAP.get(sector)
+    operands = [
+        EquityQuery('eq', ['region', region_code]),
+        EquityQuery('gt', ['intradaymarketcap', 50000000])  # min $50M
+    ]
+    if sector_name:
+        operands.append(EquityQuery('eq', ['sector', sector_name]))
+
+    query = EquityQuery('and', operands)
+    res = screen(query, size=250)
+    quotes = res.get('quotes', [])
+    if not quotes:
+        return pd.DataFrame(), f"No results for {sector} in {region}."
+
+    df = pd.DataFrame(quotes)
+    cols_to_keep = ['symbol', 'shortName', 'regularMarketPrice', 'marketCap', 'trailingPE', 'forwardPE', 'priceToBook', 'epsTrailingTwelveMonths', 'dividendYield', 'fiftyTwoWeekLow', 'fiftyTwoWeekHigh', 'beta']
+    available_cols = [c for c in cols_to_keep if c in df.columns]
+    df = df[available_cols].copy()
+
+    # Numeric conversion
+    for num_col in ['trailingPE', 'forwardPE', 'priceToBook', 'marketCap', 'dividendYield', 'beta', 'regularMarketPrice', 'fiftyTwoWeekLow', 'fiftyTwoWeekHigh', 'epsTrailingTwelveMonths']:
+        if num_col in df.columns:
+            df[num_col] = pd.to_numeric(df[num_col], errors='coerce')
+
+    # Valuation filter
+    if "trailingPE" in df.columns and valuation != "Any":
+        low_pe = 20 if sector in ["Technology", "Healthcare"] else 15
+        high_pe = 35 if sector in ["Technology", "Healthcare"] else 25
+        if valuation == "Undervalued":
+            df = df[df['trailingPE'] < low_pe].sort_values('trailingPE', ascending=True)
+        elif valuation == "Overvalued":
+            df = df[df['trailingPE'] > high_pe].sort_values('trailingPE', ascending=False)
+        elif valuation == "Equal Valued":
+            df = df[(df['trailingPE'] >= low_pe) & (df['trailingPE'] <= high_pe)].sort_values('trailingPE')
+    elif "trailingPE" in df.columns:
+        df = df.sort_values('trailingPE', ascending=True)
+
+    df = df.rename(columns=RENAME_MAP)
+    title = f"{valuation} {sector} Stocks — {region} ({len(df)} results)"
+    return df, title
+
 
 @tool
 def screen_market(asset_class: str = "Stocks", valuation: str = "Undervalued", sector: str = "Technology", region: str = "United States") -> str:
     """Screens the market based on asset class, valuation category, sector, and global region.
     Args:
         asset_class (str): 'Stocks', 'ETFs', or 'Mutual Funds'
-        valuation (str): 'Undervalued', 'Overvalued', 'Equal Valued', or 'Any' (primarily for stocks)
-        sector (str): The specific sector to screen (e.g. 'Technology', 'Healthcare', 'Financial', 'Energy', 'Consumer Cyclical', etc.)
-        region (str): The global market region (e.g., 'United States', 'India', 'United Kingdom', 'Germany', 'France', 'Canada', 'Australia', 'Taiwan', 'Singapore', 'Brazil')
+        valuation (str): 'Undervalued', 'Overvalued', 'Equal Valued', or 'Any'
+        sector (str): Sector to screen (e.g. 'Technology', 'Healthcare', 'Financial', 'Energy', 'Consumer Cyclical', etc.)
+        region (str): Market region (e.g., 'United States', 'India', 'Japan', 'China', 'South Korea', etc.)
     """
     try:
-        s = Screener(country=region.lower())
-        # Map user friendly sectors to yahooquery endpoints (most sectors map directly to their lowercase names)
-        sector_mapping = {
-            "Technology": "ms_technology", "Healthcare": "ms_healthcare", "Financial": "ms_financial_services",
-            "Energy": "ms_energy", "Consumer Cyclical": "ms_consumer_cyclical",
-            "Basic Materials": "ms_basic_materials", "Communication Services": "ms_communication_services",
-            "Industrials": "ms_industrials", "Consumer Defensive": "ms_consumer_defensive",
-            "Real Estate": "ms_real_estate", "Utilities": "ms_utilities", "All Stocks": "day_gainers"
-        }
-        
-        # Determine the endpoint
-        if asset_class == "ETFs":
-            endpoint = "top_etfs_us"
-        elif asset_class == "Mutual Funds":
-            endpoint = "top_mutual_funds"
-        else:
-            endpoint = sector_mapping.get(sector, "technology")
-            
-        # Get more results to increase chances of finding stocks fitting the valuation criteria
-        data = s.get_screeners(endpoint, count=250)
-        
-        if endpoint in data and 'quotes' in data[endpoint] and data[endpoint]['quotes']:
-            quotes = data[endpoint]['quotes']
-            df = pd.DataFrame(quotes)
-            if df.empty:
-                return f"No results found for {sector} {asset_class} at this time."
-                
-            cols_to_keep = ['symbol', 'shortName', 'regularMarketPrice', 'marketCap', 'trailingPE', 'forwardPE', 'priceToBook', 'epsTrailingTwelveMonths', 'dividendYield', 'yield', 'ytdReturn', 'fiftyTwoWeekLow', 'fiftyTwoWeekHigh', 'beta']
-            available_cols = [c for c in cols_to_keep if c in df.columns]
-            
-            # Filter by valuation if it's Stocks
-            if asset_class == "Stocks" and "trailingPE" in df.columns and valuation != "Any":
-                df['trailingPE'] = pd.to_numeric(df['trailingPE'], errors='coerce')
-                
-                # Dynamic heuristic for high-growth sectors
-                low_pe = 20 if sector in ["Technology", "Healthcare"] else 15
-                high_pe = 35 if sector in ["Technology", "Healthcare"] else 25
-                
-                if valuation == "Undervalued":
-                    df = df[df['trailingPE'] < low_pe].sort_values('trailingPE')
-                elif valuation == "Overvalued":
-                    df = df[df['trailingPE'] > high_pe].sort_values('trailingPE', ascending=False)
-                elif valuation == "Equal Valued":
-                    df = df[(df['trailingPE'] >= low_pe) & (df['trailingPE'] <= high_pe)]
-                    
-            if df.empty:
-                return f"No {valuation} results found in {sector} {asset_class} based on P/E ratio criteria."
-                
-            # Limit the final output to 15
-            df = df.head(15)
-            
-            if 'marketCap' in df.columns:
-                df['marketCap'] = df['marketCap'].apply(lambda x: f"${x/1e9:.2f}B" if pd.notnull(x) else x)
-            if 'beta' in df.columns:
-                df['beta'] = df['beta'].apply(lambda x: f"{x:.2f}" if pd.notnull(x) else x)
-            if 'dividendYield' in df.columns:
-                df['dividendYield'] = df['dividendYield'].apply(lambda x: f"{x:.2f}%" if pd.notnull(x) else x)
-                
-            # Rename columns for better readability in the UI
-            rename_map = {
-                'symbol': 'Ticker',
-                'shortName': 'Company',
-                'regularMarketPrice': 'Price',
-                'marketCap': 'Market Cap',
-                'trailingPE': 'P/E Ratio',
-                'forwardPE': 'Fwd P/E',
-                'priceToBook': 'P/B Ratio',
-                'epsTrailingTwelveMonths': 'EPS (TTM)',
-                'dividendYield': 'Div Yield',
-                'yield': 'Yield',
-                'ytdReturn': 'YTD Return',
-                'fiftyTwoWeekLow': '52 Wk Low',
-                'fiftyTwoWeekHigh': '52 Wk High',
-                'beta': 'Beta'
-            }
-            df = df.rename(columns=rename_map)
-            # Filter available cols based on the ones we kept and then renamed
-            display_cols = [rename_map.get(c, c) for c in available_cols]
-                
-            res = df[display_cols].to_markdown(index=False)
-            return f"### {valuation} {sector} {asset_class} Screener Results ({region})\n\n{res}"
-            
-        return f"No results found for {sector} {asset_class} in {region} at this time."
+        df, title = fetch_screener_df(asset_class, valuation, sector, region)
+        if df.empty:
+            return title
+        display_cols = [c for c in df.columns if c in RENAME_MAP.values()]
+        return f"### {title}\n\n{df.head(20).to_markdown(index=False)}"
     except Exception as e:
         return f"Error screening market: {str(e)}"
 
+
+import yfinance as yf
 @tool
 def get_stock_fundamentals(ticker: str) -> str:
     """Fetches fundamental data and key valuation metrics for a specific stock ticker.

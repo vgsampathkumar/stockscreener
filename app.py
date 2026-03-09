@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import json
-from tools import screen_market
+from tools import screen_market, fetch_screener_df
 from agent import create_financial_agent, run_analysis
 
 st.set_page_config(
@@ -11,83 +11,207 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for a premium "Facelift" look
+# Custom CSS — White / Red / Black / Grey palette
 st.markdown("""
 <style>
-    /* Main Background & Text */
+    /* ── Core Layout ───────────────────────────────── */
     .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1e2f 100%);
-        color: #f8fafc;
+        background: #ffffff;
+        color: #111827;
         font-family: 'Inter', sans-serif;
     }
-    
-    /* Headers */
-    h1, h2, h3 {
-        color: #ffffff;
+
+    /* ── Sidebar ────────────────────────────────────── */
+    [data-testid="stSidebar"] {
+        background: #f3f4f6;
+        border-right: 2px solid #e5e7eb;
+    }
+
+    /* ── Headers ────────────────────────────────────── */
+    h1, h2, h3, h4 {
+        color: #111827;
         font-weight: 700;
         letter-spacing: -0.5px;
     }
-    
-    /* Custom Card for Results - Glassmorphism */
+
+    /* ── Tab Bar ────────────────────────────────────── */
+    [data-testid="stTabs"] button {
+        color: #6b7280;
+        font-weight: 600;
+    }
+    [data-testid="stTabs"] button[aria-selected="true"] {
+        color: #e11d48 !important;
+        border-bottom: 2px solid #e11d48 !important;
+    }
+
+    /* ── Result Card ─────────────────────────────────── */
     .result-card {
-        background: rgba(30, 35, 41, 0.6);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: #f9fafb;
         padding: 24px;
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        border-left: 4px solid #e11d48;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-top: 16px;
+        color: #111827;
     }
-    
-    /* Tables Styling */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        border-radius: 8px;
-        overflow: hidden;
-    }
+
+    /* ── Tables ─────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
     th {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #94a3b8;
+        background-color: #111827;
+        color: #ffffff;
         font-weight: 600;
         text-align: left;
-        padding: 12px;
+        padding: 11px 14px;
     }
-    td {
-        padding: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    tr:hover {
-        background-color: rgba(255, 255, 255, 0.02);
-    }
-    
-    /* Metrics */
-    div[data-testid="stMetricValue"] {
-        color: #10b981; /* Bullish Green */
-    }
-    
-    /* Buttons */
+    td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; color: #111827; }
+    tr:hover td { background-color: #fef2f2; }
+
+    /* ── Metric Values ───────────────────────────────── */
+    div[data-testid="stMetricValue"] { color: #e11d48; }
+
+    /* ── Primary Buttons ─────────────────────────────── */
     .stButton>button {
-        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
+        background: #e11d48;
+        color: #ffffff;
         border-radius: 8px;
         border: none;
-        padding: 0.6rem 1.2rem;
+        padding: 0.55rem 1.2rem;
         font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.39);
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(225,29,72,0.30);
     }
     .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        background: #be123c;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(225,29,72,0.45);
     }
+
+    /* ── Inputs / Selects ────────────────────────────── */
+    .stTextInput>div>div>input, .stSelectbox>div>div {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        color: #111827;
+        background: #ffffff;
+    }
+
+    /* ── Spinners / Info Boxes ───────────────────────── */
+    .stSpinner > div { border-top-color: #e11d48 !important; }
+    .stAlert { border-radius: 8px; }
+
+    /* ── Dataframe / Table header ────────────────────── */
+    [data-testid="stDataFrame"] th {
+        background-color: #111827 !important;
+        color: #ffffff !important;
+    }
+    [data-testid="stDataFrame"] tr:hover td { background-color: #fef2f2 !important; }
+
+    /* ── Scrollbar ───────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f3f4f6; }
+    ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #e11d48; }
 </style>
 """, unsafe_allow_html=True)
 
 # Application Header
 st.title("📈 Agentic Stock Screener & Analyst")
 st.markdown("An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.")
+
+# ── Scrolling Ribbons ────────────────────────────────────────────────────────
+import yfinance as yf_ribbon
+import time
+
+@st.cache_data(ttl=300)  # cache for 5 minutes
+def get_index_ribbon_html():
+    """Fetch live global index prices and format as scrolling ribbon HTML."""
+    indices = {
+        "S&P 500": "^GSPC", "NASDAQ": "^IXIC", "Dow Jones": "^DJI",
+        "FTSE 100": "^FTSE", "Nikkei 225": "^N225", "Hang Seng": "^HSI",
+        "BSE Sensex": "^BSESN", "Shanghai": "000001.SS", "KOSPI": "^KS11",
+        "DAX": "^GDAXI", "CAC 40": "^FCHI", "ASX 200": "^AXJO",
+        "Russell 2000": "^RUT", "VIX": "^VIX"
+    }
+    items = []
+    for name, sym in indices.items():
+        try:
+            t = yf_ribbon.Ticker(sym)
+            hist = t.history(period="5d")
+            if len(hist) >= 2:
+                price = hist['Close'].iloc[-1]
+                prev  = hist['Close'].iloc[-2]
+                chg   = (price - prev) / prev * 100
+                arrow = "▲" if chg >= 0 else "▼"
+                color = "#ffffff" if chg >= 0 else "#fca5a5"
+                items.append(
+                    f'<span class="idx-item"><b>{name}</b> &nbsp;'
+                    f'<span style="color:#f9fafb">{price:,.2f}</span>&nbsp;'
+                    f'<span style="color:{color}">{arrow} {abs(chg):.2f}%</span></span>'
+                )
+        except Exception:
+            pass
+    return items
+
+@st.cache_data(ttl=300)
+def get_news_ribbon_html():
+    """Fetch latest market news headlines and format as scrolling ribbon HTML."""
+    items = []
+    seen = set()
+    for sym in ["^GSPC", "^IXIC", "GC=F", "CL=F", "BTC-USD"]:
+        try:
+            news = yf_ribbon.Ticker(sym).news or []
+            for n in news[:4]:
+                title = n.get('content', {}).get('title', '') or n.get('title', '')
+                if title and title not in seen:
+                    seen.add(title)
+                    items.append(f'<span class="news-item">📰 {title}</span>')
+        except Exception:
+            pass
+    return items
+
+def render_ribbon(items, bg_color, speed="40s", ribbon_id="ribbon"):
+    if not items:
+        return
+    track = "".join(items * 2)
+    st.markdown(f"""
+    <style>
+    .ribbon-wrap-{ribbon_id} {{
+        overflow: hidden;
+        background: {bg_color};
+        padding: 6px 12px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        white-space: nowrap;
+        position: relative;
+    }}
+    .ribbon-track-{ribbon_id} {{
+        display: inline-block;
+        white-space: nowrap;
+        animation: ticker-{ribbon_id} {speed} linear infinite;
+        font-size: 0.82rem;
+        font-family: 'Inter', sans-serif;
+        color: #f3f4f6;
+    }}
+    @keyframes ticker-{ribbon_id} {{
+        0%   {{ transform: translateX(0); }}
+        100% {{ transform: translateX(-50%); }}
+    }}
+    .idx-item  {{ margin-right: 48px; }}
+    .news-item {{ margin-right: 60px; }}
+    </style>
+    <div class="ribbon-wrap-{ribbon_id}">
+      <div class="ribbon-track-{ribbon_id}">{track}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# Render index ribbon first, news ribbon below
+with st.spinner("Loading market data..."):
+    index_items = get_index_ribbon_html()
+    news_items  = get_news_ribbon_html()
+
+render_ribbon(index_items, bg_color="#111827",  speed="60s", ribbon_id="idx")
+render_ribbon(news_items,  bg_color="#374151",  speed="120s", ribbon_id="news")
+
 
 # Sidebar Configuration
 with st.sidebar:
@@ -127,21 +251,78 @@ with tab1:
     with col1d:
         supported_regions = [
             "United States", "India", "United Kingdom", "Germany", 
-            "France", "Canada", "Australia", "Taiwan", "Singapore", "Brazil"
+            "France", "Canada", "Australia", "Taiwan", "Singapore", "Brazil",
+            "Japan", "China", "South Korea", "Hong Kong"
         ]
         region_choice = st.selectbox("Market Region", supported_regions)
             
-    if st.button("Run Screener"):
+    if st.button("Run Screener", type="primary"):
         with st.spinner(f"Scanning {asset_class} in {region_choice}..."):
-            results = screen_market.invoke({
-                "asset_class": asset_class, 
-                "valuation": valuation, 
-                "sector": sector,
-                "region": region_choice
-            })
-            # Remove the HTML div wrapper so Streamlit's markdown parser properly renders the table
-            st.markdown("---")
-            st.markdown(results)
+            df_result, result_title = fetch_screener_df(asset_class, valuation, sector, region_choice)
+            st.session_state['screener_df'] = df_result
+            st.session_state['screener_title'] = result_title
+            st.session_state['screener_page'] = 0  # reset to first page
+
+    # Display results (persisted in session state, survives reruns from page buttons)
+    if 'screener_df' in st.session_state and st.session_state['screener_df'] is not None:
+        df_all = st.session_state['screener_df']
+        title = st.session_state.get('screener_title', 'Screener Results')
+        
+        st.markdown("---")
+        if df_all.empty:
+            st.warning(f"⚠️ {title}")
+        else:
+            PAGE_SIZE = 10
+            total_rows = len(df_all)
+            total_pages = max(1, (total_rows + PAGE_SIZE - 1) // PAGE_SIZE)
+            page = st.session_state.get('screener_page', 0)
+            
+            # Header row: title on left, record count on right
+            hcol1, hcol2 = st.columns([3, 1])
+            with hcol1:
+                st.markdown(f"### {title}")
+            with hcol2:
+                st.markdown(f"<p style='text-align:right;color:#94a3b8;padding-top:0.6rem;'>Page {page+1} of {total_pages} &nbsp;|&nbsp; {total_rows} records</p>", unsafe_allow_html=True)
+            
+            # Slice page
+            start = page * PAGE_SIZE
+            end = min(start + PAGE_SIZE, total_rows)
+            df_page = df_all.iloc[start:end]
+            
+            # Native st.dataframe — has built-in column sort on click
+            st.dataframe(
+                df_page,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Ticker":       st.column_config.TextColumn("Ticker", width="small"),
+                    "Company":      st.column_config.TextColumn("Company", width="medium"),
+                    "Price":        st.column_config.NumberColumn("Price", format="%.2f"),
+                    "Market Cap":   st.column_config.NumberColumn("Mkt Cap ($B)", format="%.2fB"),
+                    "P/E Ratio":    st.column_config.NumberColumn("P/E Ratio", format="%.2f"),
+                    "Fwd P/E":      st.column_config.NumberColumn("Fwd P/E", format="%.2f"),
+                    "P/B Ratio":    st.column_config.NumberColumn("P/B Ratio", format="%.2f"),
+                    "EPS (TTM)":    st.column_config.NumberColumn("EPS (TTM)", format="%.2f"),
+                    "Div Yield":    st.column_config.NumberColumn("Div Yield", format="%.2f%%"),
+                    "52 Wk Low":   st.column_config.NumberColumn("52 Wk Low", format="%.2f"),
+                    "52 Wk High":  st.column_config.NumberColumn("52 Wk High", format="%.2f"),
+                    "Beta":         st.column_config.NumberColumn("Beta", format="%.2f"),
+                }
+            )
+            
+            # Pagination controls
+            pcol1, pcol2, pcol3 = st.columns([1, 2, 1])
+            with pcol1:
+                if st.button("◀ Prev", disabled=(page == 0), key="prev_page"):
+                    st.session_state['screener_page'] -= 1
+                    st.rerun()
+            with pcol2:
+                st.markdown(f"<p style='text-align:center;color:#94a3b8;'>Showing rows {start+1}–{end} of {total_rows} &nbsp;·&nbsp; Click any column header to sort</p>", unsafe_allow_html=True)
+            with pcol3:
+                if st.button("Next ▶", disabled=(page >= total_pages - 1), key="next_page"):
+                    st.session_state['screener_page'] += 1
+                    st.rerun()
+
 
 with tab2:
     st.header("Single Stock Analyst")
