@@ -26,7 +26,7 @@ def render_auth_page():
 
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
-        tab_in, tab_up = st.tabs(["🔑 Sign In", "📝 Sign Up"])
+        tab_in, tab_up, tab_guest = st.tabs(["🔑 Sign In", "📝 Sign Up", "🕵️ Guest"])
 
         # ── Sign In ─────────────────────────────────────────────────────────
         with tab_in:
@@ -94,25 +94,58 @@ def render_auth_page():
                                 st.error("❌ This email is already registered. Please Sign In instead.")
                             else:
                                 st.error(f"❌ Sign up failed: {err}")
-
+                                
+        # ── Guest Login ──────────────────────────────────────────────────────
+        with tab_guest:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.info("Try out the Agentic Stock Screener & Analyst without creating an account. Portfolios will not be permanently saved.")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("Continue as Guest", key="btn_guest", use_container_width=True):
+                # We use a dummy guest fallback in portfolio_engine
+                st.session_state["user_id"] = "guest_user"
+                st.session_state["user_email"] = "Guest Explorer"
+                st.session_state["access_token"] = "guest_token_123"
+                st.rerun()
 
 def render_user_header():
-    """Renders the logged-in user badge and Sign Out button in top-right."""
-    email = st.session_state.get("user_email", "User")
-    col_l, col_r = st.columns([5, 1])
-    with col_r:
-        st.markdown(f"<div style='text-align:right; color:#6b7280; font-size:0.85em; padding-top:4px;'>👤 {email}</div>", unsafe_allow_html=True)
-        if st.button("Sign Out", key="btn_signout"):
+    # Renders the logged-in user badge using fixed CSS, and places Sign Out in sidebar if active.
+    email = st.session_state.get("user_email", "Guest")
+    st.markdown(f"""
+        <style>
+        .user-badge-fixed {{
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            z-index: 1000000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            color: #111827;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        </style>
+        <div class='user-badge-fixed'>👤 {email}</div>
+    """, unsafe_allow_html=True)
+    
+    with st.sidebar:
+        st.markdown("---")
+        if st.button("🚪 Sign Out", key="btn_signout", use_container_width=True):
             try:
-                supabase = get_supabase()
-                supabase.auth.sign_out()
+                if st.session_state.get("user_id") != "guest_user":
+                    supabase = get_supabase()
+                    supabase.auth.sign_out()
             except Exception:
                 pass
             for key in ["user_id", "user_email", "access_token", "selected_account",
-                        "show_order_ticket", "show_quote_modal"]:
+                        "show_order_ticket", "show_quote_modal", "guest_db"]:
                 st.session_state.pop(key, None)
             st.rerun()
-
 
 def is_authenticated() -> bool:
     """Returns True if a valid user session exists in session_state."""
