@@ -18,7 +18,7 @@ def render_auth_page():
     st.markdown("""
     <div style="max-width:420px; margin:60px auto 0 auto;">
         <div style="text-align:center; margin-bottom:32px;">
-            <h1 style="color:#008a00; font-size:2.4em; margin:0;">📈 Paper Trader</h1>
+            <h1 style="color:#111827; font-size:2.4em; margin:0;">📈 Paper Trader</h1>
             <p style="color:#6b7280; margin-top:8px;">Powered by Fidelity-style simulated trading</p>
         </div>
     </div>

@@ -1,4 +1,5 @@
-from langchain_openai import ChatOpenAI
+import streamlit as st
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
 from tools import FINANCIAL_TOOLS
@@ -32,17 +33,16 @@ Format your final report utilizing clean Markdown:
 Note: If a tool returns an error or no data, explicitly state that in your analysis and gracefully handle the missing information.
 """
 
-def create_financial_agent(api_key: str, model_name: str = "gpt-4o"):
+def create_financial_agent(groq_api_key: str, model_name: str = "llama-3.1-70b-versatile"):
     """
     Creates and returns a LangGraph React Agent configured with the financial tools and system prompt.
+    Uses Groq (Llama 3) for fast, free inference.
     """
-    # Ensure the API key is accessible to the langchain openai integration
-    os.environ["OPENAI_API_KEY"] = api_key
-    
-    # Instantiate the LLM
-    llm = ChatOpenAI(
+    # Instantiate the Groq LLM
+    llm = ChatGroq(
         model=model_name,
-        temperature=0.2, # Low temperature for more analytical/factual responses
+        api_key=groq_api_key,
+        temperature=0.2,  # Low temperature for more analytical/factual responses
     )
     
     # Bind tools and system prompt to create the React agent loop
@@ -89,12 +89,16 @@ When analyzing a user's portfolio, follow this process carefully:
 Format your report in clean Markdown with clear headings for **Macro Setup**, **Micro Execution**, **Analyst Benchmark**, **Risk Correlation**, and **5-Year Rebalancing Plan**.
 """
 
-def create_macro_analyst_agent(api_key: str, model_name: str = "gpt-4o"):
+def create_macro_analyst_agent(groq_api_key: str, model_name: str = "llama-3.1-70b-versatile"):
     """
     Creates the advanced macro analyst agent emphasizing Fed policy and 5-year rebalancing.
+    Uses Groq (Llama 3) for fast, free inference.
     """
-    os.environ["OPENAI_API_KEY"] = api_key
-    llm = ChatOpenAI(model=model_name, temperature=0.3)
+    llm = ChatGroq(
+        model=model_name,
+        api_key=groq_api_key,
+        temperature=0.3,
+    )
     
     agent_executor = create_react_agent(
         llm, 

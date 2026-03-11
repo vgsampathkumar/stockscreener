@@ -223,17 +223,18 @@ render_ribbon(index_items, bg_color="#111827",  speed="60s", ribbon_id="idx")
 render_ribbon(news_items,  bg_color="#374151",  speed="120s", ribbon_id="news")
 
 
-# Sidebar Configuration
-with st.sidebar:
-    st.header("⚙️ Configuration")
-    api_key = st.text_input("OpenAI API Key", type="password", help="Required to run the AI Analyst")
-    model_choice = st.selectbox("Model", ["gpt-4o", "gpt-3.5-turbo"])
-    st.markdown("---")
-    st.markdown("### How it works")
-    st.markdown("1. Start with the **Education** tab to learn the basics.")
-    st.markdown("2. Provide your API Key.")
-    st.markdown("3. Use the **Screener** to find undervalued growth stocks.")
-    st.markdown("4. Enter a **Ticker** to run a comprehensive fundamental analysis and get a Buy/Hold/Sell recommendation.")
+# Groq API key from secrets for AI agents
+groq_api_key = st.secrets.get("GROQ_API_KEY", "")
+
+# "How it works" collapsible section at the top
+with st.expander("ℹ️ How it works", expanded=False):
+    st.markdown("""
+1. 🎓 Start with the **Education** tab to learn stock market basics.
+2. 📊 Use the **Stock Screener** to find undervalued growth stocks across global markets.
+3. 🔍 Enter a **Ticker** in the **Single Stock Analyst** to get an AI-powered deep-dive report with a Buy/Hold/Sell recommendation.
+4. 🌐 Use the **Macro Portfolio Analyst** to analyze your holdings against current macroeconomic trends and get a rebalancing plan.
+5. 💰 Practice trading risk-free in the **Paper Trader** with virtual cash.
+    """)
 
 # Layout using Tabs for better organization
 tab0, tab1, tab2, tab3, tab4 = st.tabs([
@@ -383,14 +384,14 @@ with tab2:
     ticker_input = st.text_input("Enter Stock Ticker (e.g., AAPL, MSFT, TSLA)").upper()
     
     if st.button("Run AI Analysis", type="primary"):
-        if not api_key:
-            st.error("⚠️ Please provide an OpenAI API Key in the sidebar.")
+        if not groq_api_key:
+            st.error("⚠️ Groq API key not found. Please add `GROQ_API_KEY` to `.streamlit/secrets.toml`.")
         elif not ticker_input:
             st.error("⚠️ Please enter a stock ticker.")
         else:
             try:
-                # Initialize Agent
-                agent = create_financial_agent(api_key, model_choice)
+                # Initialize Agent with Groq
+                agent = create_financial_agent(groq_api_key)
                 
                 st.markdown(f"### Analyzing {ticker_input}...")
                 
@@ -498,14 +499,14 @@ with tab3:
     horizon = st.selectbox("Investment Horizon", ["5 Years", "3 Years", "10 Years"])
     
     if st.button("Generate Rebalancing Plan", type="primary"):
-        if not api_key:
-            st.error("⚠️ Please provide an OpenAI API Key.")
+        if not groq_api_key:
+            st.error("⚠️ Groq API key not found. Please add `GROQ_API_KEY` to `.streamlit/secrets.toml`.")
         elif not portfolio_input:
             st.error("⚠️ Please enter at least one ticker.")
         else:
             try:
                 from agent import create_macro_analyst_agent
-                macro_agent = create_macro_analyst_agent(api_key, model_choice)
+                macro_agent = create_macro_analyst_agent(groq_api_key)
                 
                 st.markdown(f"### Evaluating Macro Risks for: {portfolio_input}")
                 
