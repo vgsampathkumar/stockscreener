@@ -6,6 +6,7 @@ from agent import create_financial_agent, run_analysis
 from portfolio_engine import PaperPortfolio
 from paper_trade_ui import render_paper_trader
 from auth_ui import render_auth_page, render_user_header, is_authenticated
+from education_ui import render_education
 
 st.set_page_config(
     page_title="Agentic Stock Screener & Analyst",
@@ -229,14 +230,16 @@ with st.sidebar:
     model_choice = st.selectbox("Model", ["gpt-4o", "gpt-3.5-turbo"])
     st.markdown("---")
     st.markdown("### How it works")
-    st.markdown("1. Provide your API Key.")
-    st.markdown("2. Use the **Screener** to find undervalued growth stocks.")
-    st.markdown("3. Enter a **Ticker** to run a comprehensive fundamental analysis and get a Buy/Hold/Sell recommendation.")
+    st.markdown("1. Start with the **Education** tab to learn the basics.")
+    st.markdown("2. Provide your API Key.")
+    st.markdown("3. Use the **Screener** to find undervalued growth stocks.")
+    st.markdown("4. Enter a **Ticker** to run a comprehensive fundamental analysis and get a Buy/Hold/Sell recommendation.")
 
 # Layout using Tabs for better organization
-tab1, tab2, tab3, tab4 = st.tabs([
-    "1️⃣ Stock Screener", 
-    "2️⃣ Single Stock Analyst", 
+tab0, tab1, tab2, tab3, tab4 = st.tabs([
+    "🎓 Education",
+    "1️⃣ Stock Screener",
+    "2️⃣ Single Stock Analyst",
     "3️⃣ Macro Portfolio Analyst",
     "4️⃣ Paper Trader"
 ])
@@ -248,6 +251,9 @@ if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_i
     st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
     st.session_state['portfolio_user_id'] = user_id
 portfolio = st.session_state['portfolio']
+
+with tab0:
+    render_education()
 
 with tab1:
     st.header("Market Screener")
@@ -355,7 +361,7 @@ with tab1:
                     st.session_state['paper_trade_ticker'] = sel_ticker
                     st.session_state['paper_trade_notes'] = "Found via Screener"
                     st.session_state['show_order_ticket'] = True
-                    st.success(f"Ready! Switch to the '4️⃣ Paper Trader' tab to buy {sel_ticker}")
+                    st.success(f"Ready! Switch to the '4️⃣ Paper Trader' tab to buy {sel_ticker}.")
             
             st.markdown("---")
             pcol1, pcol2, pcol3 = st.columns([1, 2, 1])
@@ -437,7 +443,7 @@ with tab2:
                                     st.session_state['paper_trade_ticker'] = ticker_input
                                     st.session_state['paper_trade_notes'] = "AI Analyst Recommendation: " + msg.content[:200] + "..."
                                     st.session_state['show_order_ticket'] = True
-                                    st.success(f"Ready! Switch to '4️⃣ Paper Trader' tab to place order for {ticker_input}")
+                                    st.success(f"Ready! Switch to '4️⃣ Paper Trader' tab to place order for {ticker_input}.")
                     except Exception as e:
                         st.error(f"Error during agent execution: {str(e)}")
                         
@@ -526,7 +532,7 @@ with tab3:
                                     st.session_state['paper_trade_ticker'] = first_tick
                                     st.session_state['paper_trade_notes'] = "Macro Plan: " + msg.content[:200] + "..."
                                     st.session_state['show_order_ticket'] = True
-                                    st.success("Ready! Switch to '4️⃣ Paper Trader' tab to begin executing the plan")
+                                    st.success("Ready! Switch to '4️⃣ Paper Trader' tab to begin executing the plan.")
                     except Exception as e:
                         st.error(f"Error during agent execution: {str(e)}")
             except Exception as e:
