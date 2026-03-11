@@ -1,11 +1,8 @@
 # Environments
 .env
 .venv
-env/
 venv/
 ENV/
-env.bak/
-venv.bak/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -15,12 +12,15 @@ __pycache__/
 # Temporary / OS files
 .DS_Store
 Thumbs.db
-*.txt
 
 # Ignore specific output files we made during dev
 cols_keys.json
 
-# API keys (Though handled by Streamlit secrets or password input, this is just a safety measure)
+# Secrets and API keys
 *.key
 *.pem
+.streamlit/secrets.toml
 secrets.toml
+
+# Paper trading database (user-specific, never commit)
+paper_portfolio.db
