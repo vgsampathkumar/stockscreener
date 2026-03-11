@@ -313,3 +313,82 @@ FINANCIAL_TOOLS = [
     get_earnings_transcripts,
     get_macro_economic_data
 ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Web search tool for the agentic chatbot (uses DuckDuckGo – free, no key)
+# ─────────────────────────────────────────────────────────────────────────────
+import requests as _req
+
+@tool
+def web_search_news(query: str) -> str:
+    """Search the web for the latest news, market trends, economic data, or any topic.
+    Use this to get current real-time information about finance, economics,
+    global events, stock market news, and any general knowledge questions.
+    Args:
+        query (str): The search query, e.g. 'latest Federal Reserve interest rate decision 2026'
+    """
+    try:
+        url = "https://html.duckduckgo.com/html/"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = _req.get(url, params={"q": query}, headers=headers, timeout=10)
+        resp.raise_for_status()
+
+        # Parse results from the HTML response
+        from html.parser import HTMLParser
+        results = []
+        class DDGParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self._in_result = False
+                self._in_snippet = False
+                self._current = {}
+            def handle_starttag(self, tag, attrs):
+                attrs_dict = dict(attrs)
+                if tag == "a" and "result__a" in attrs_dict.get("class", ""):
+                    self._in_result = True
+                    self._current["title"] = ""
+                    self._current["url"] = attrs_dict.get("href", "")
+                if tag == "a" and "result__snippet" in attrs_dict.get("class", ""):
+                    self._in_snippet = True
+                    self._current["snippet"] = ""
+            def handle_endtag(self, tag):
+                if tag == "a" and self._in_result:
+                    self._in_result = False
+                if tag == "a" and self._in_snippet:
+                    self._in_snippet = False
+                    if self._current.get("title"):
+                        results.append(dict(self._current))
+                    self._current = {}
+            def handle_data(self, data):
+                if self._in_result:
+                    self._current["title"] = self._current.get("title", "") + data
+                if self._in_snippet:
+                    self._current["snippet"] = self._current.get("snippet", "") + data
+
+        parser = DDGParser()
+        parser.feed(resp.text)
+
+        if not results:
+            return f"No search results found for '{query}'. Try a different search query."
+
+        formatted = f"### Web Search Results for: {query}\n\n"
+        for i, r in enumerate(results[:8], 1):
+            formatted += f"**{i}. {r.get('title', 'No title')}**\n"
+            formatted += f"   {r.get('snippet', 'No description')}\n\n"
+        return formatted
+    except Exception as e:
+        return f"Error performing web search: {str(e)}"
+
+
+# All tools available to the agentic chatbot (finance + web search)
+CHAT_TOOLS = [
+    get_stock_fundamentals,
+    get_stock_financials,
+    get_stock_news,
+    get_analyst_recommendations,
+    get_earnings_transcripts,
+    get_macro_economic_data,
+    web_search_news,
+]
+

@@ -33,7 +33,7 @@ Format your final report utilizing clean Markdown:
 Note: If a tool returns an error or no data, explicitly state that in your analysis and gracefully handle the missing information.
 """
 
-def create_financial_agent(groq_api_key: str, model_name: str = "llama-3.1-70b-versatile"):
+def create_financial_agent(groq_api_key: str, model_name: str = "llama-3.3-70b-versatile"):
     """
     Creates and returns a LangGraph React Agent configured with the financial tools and system prompt.
     Uses Groq (Llama 3) for fast, free inference.
@@ -89,7 +89,7 @@ When analyzing a user's portfolio, follow this process carefully:
 Format your report in clean Markdown with clear headings for **Macro Setup**, **Micro Execution**, **Analyst Benchmark**, **Risk Correlation**, and **5-Year Rebalancing Plan**.
 """
 
-def create_macro_analyst_agent(groq_api_key: str, model_name: str = "llama-3.1-70b-versatile"):
+def create_macro_analyst_agent(groq_api_key: str, model_name: str = "llama-3.3-70b-versatile"):
     """
     Creates the advanced macro analyst agent emphasizing Fed policy and 5-year rebalancing.
     Uses Groq (Llama 3) for fast, free inference.

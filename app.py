@@ -7,6 +7,7 @@ from portfolio_engine import PaperPortfolio
 from paper_trade_ui import render_paper_trader
 from auth_ui import render_auth_page, render_user_header, is_authenticated
 from education_ui import render_education
+from chat_ui import render_chat
 
 st.set_page_config(
     page_title="Agentic Stock Screener & Analyst",
@@ -226,15 +227,57 @@ render_ribbon(news_items,  bg_color="#374151",  speed="120s", ribbon_id="news")
 # Groq API key from secrets for AI agents
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
 
-# "How it works" collapsible section at the top
-with st.expander("ℹ️ How it works", expanded=False):
+# Sidebar with How it works + Tab descriptions
+with st.sidebar:
+    st.markdown("### ℹ️ How it works")
     st.markdown("""
-1. 🎓 Start with the **Education** tab to learn stock market basics.
-2. 📊 Use the **Stock Screener** to find undervalued growth stocks across global markets.
-3. 🔍 Enter a **Ticker** in the **Single Stock Analyst** to get an AI-powered deep-dive report with a Buy/Hold/Sell recommendation.
-4. 🌐 Use the **Macro Portfolio Analyst** to analyze your holdings against current macroeconomic trends and get a rebalancing plan.
-5. 💰 Practice trading risk-free in the **Paper Trader** with virtual cash.
+1. 🎓 Learn the basics in **Education**
+2. 📊 Screen the market for opportunities
+3. 🔍 Deep-dive any stock with **AI Analyst**
+4. 🌐 Evaluate macro risks for your portfolio
+5. 💰 Practice risk-free with **Paper Trader**
+6. 🤖 **Ask Finley** in any tab for help!
     """)
+    st.markdown("---")
+
+    with st.expander("🎓 Education"):
+        st.markdown("""
+Interactive stock market school for all levels. Covers market basics, buying/selling, order types,
+order status, positions, account balance, and performance metrics. Each section includes a
+**YouTube video**, **3 tiered examples** (beginner to advanced), and a
+**live AI chatbot** for Q&A.
+        """)
+
+    with st.expander("1️⃣ Stock Screener"):
+        st.markdown("""
+Scan global markets for **undervalued**, **overvalued**, or **equal-valued** stocks. Filter by
+asset class (Stocks, ETFs, Mutual Funds), sector, and 14 market regions worldwide.
+Results can be directly sent to Paper Trader.
+        """)
+
+    with st.expander("2️⃣ Single Stock Analyst"):
+        st.markdown("""
+AI-powered deep-dive on any stock ticker. The agent uses financial tools to fetch fundamentals,
+financials, news, and analyst consensus, then generates a professional **Buy / Hold / Sell**
+report with a 1-year price chart.
+        """)
+
+    with st.expander("3️⃣ Macro Portfolio Analyst"):
+        st.markdown("""
+Enter your real portfolio tickers and get a personalized macro risk analysis. The AI agent
+correlates your holdings with Fed policy, interest rates, tariffs, and global events to produce
+a **5-year rebalancing plan** benchmarked against Wall Street analyst consensus.
+        """)
+
+    with st.expander("4️⃣ Paper Trader"):
+        st.markdown("""
+Fidelity-style simulated trading with virtual cash. Place market/limit orders, manage positions,
+track P&L, and view portfolio performance — all risk-free. Data is saved to the cloud via
+Supabase so your portfolio persists across sessions.
+        """)
+
+    st.markdown("---")
+    st.caption("🤖 AI powered by Llama 3.3 via Groq")
 
 # Layout using Tabs for better organization
 tab0, tab1, tab2, tab3, tab4 = st.tabs([
@@ -255,6 +298,7 @@ portfolio = st.session_state['portfolio']
 
 with tab0:
     render_education()
+    render_chat(groq_api_key, tab_context="education")
 
 with tab1:
     st.header("Market Screener")
@@ -377,6 +421,8 @@ with tab1:
                     st.session_state['screener_page'] += 1
                     st.rerun()
 
+    render_chat(groq_api_key, tab_context="screener")
+
 
 with tab2:
     st.header("Single Stock Analyst")
@@ -450,6 +496,8 @@ with tab2:
                         
             except Exception as e:
                 st.error(f"Failed to initialize agent. Check your API key. Error: {str(e)}")
+
+    render_chat(groq_api_key, tab_context="analyst")
 
 with tab3:
     st.header("Macro Portfolio Analyst")
@@ -539,6 +587,9 @@ with tab3:
             except Exception as e:
                 st.error(f"Failed to initialize macro agent: {str(e)}")
 
+    render_chat(groq_api_key, tab_context="macro")
+
 with tab4:
     render_paper_trader(portfolio)
+    render_chat(groq_api_key, tab_context="paper_trader")
 
