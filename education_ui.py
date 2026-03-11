@@ -5,18 +5,19 @@ def _yt(video_id: str, caption: str = ""):
     """Embed a YouTube video responsively using an iframe."""
     st.markdown(
         f"""
-        <div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
-                    border-radius:12px;margin:12px 0 4px 0;box-shadow:0 4px 16px rgba(0,0,0,0.12);">
-          <iframe src="https://www.youtube.com/embed/{video_id}?rel=0&modestbranding=1"
-            style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-            allowfullscreen loading="lazy">
-          </iframe>
-        </div>
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
+            border-radius:12px;margin:12px 0 4px 0;box-shadow:0 4px 16px rgba(0,0,0,0.12);">
+  <iframe src="https://www.youtube.com/embed/{video_id}?rel=0&modestbranding=1"
+    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+    allowfullscreen loading="lazy">
+  </iframe>
+</div>
         """,
         unsafe_allow_html=True,
     )
     if caption:
         st.caption(f"📺 {caption}")
+
 
 
 # ── Example block helper ──────────────────────────────────────────────────────
@@ -32,11 +33,11 @@ def _examples(simple: str, medium: str, complex_: str):
         with col:
             st.markdown(
                 f"""
-                <div style="background:{bg};border-left:4px solid {bd};
-                            padding:14px 16px;border-radius:10px;min-height:160px;">
-                  <b style="font-size:0.85rem;">{label}</b>
-                  <p style="margin:8px 0 0 0;font-size:0.88rem;color:#111827;">{text}</p>
-                </div>
+<div style="background:{bg};border-left:4px solid {bd};
+            padding:14px 16px;border-radius:10px;min-height:160px;">
+  <b style="font-size:0.85rem;">{label}</b>
+  <p style="margin:8px 0 0 0;font-size:0.88rem;color:#111827;">{text}</p>
+</div>
                 """,
                 unsafe_allow_html=True,
             )

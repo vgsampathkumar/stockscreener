@@ -49,6 +49,15 @@ st.markdown("""
         border-bottom: 2px solid #e11d48 !important;
     }
 
+    /* ── Freeze Header and Tabs ────────────────────── */
+    header[data-testid="stHeader"] {
+        background: rgba(255, 255, 255, 0.95);
+    }
+    /* We keep the sticky tabs/ribbon wrapper in front */
+    .stApp > header {
+        z-index: 10;
+    }
+    
     /* ── Result Card ─────────────────────────────────── */
     .result-card {
         background: #f9fafb;
@@ -185,35 +194,35 @@ def render_ribbon_html(items, bg_color, speed="40s", ribbon_id="ribbon"):
         return ""
     track = "".join(items * 2)
     return f"""
-    <style>
-    .ribbon-wrap-{ribbon_id} {{
-        overflow: hidden;
-        background: {bg_color};
-        padding: 6px 12px;
-        border-radius: 6px;
-        margin-bottom: 6px;
-        white-space: nowrap;
-        position: relative;
-    }}
-    .ribbon-track-{ribbon_id} {{
-        display: inline-block;
-        white-space: nowrap;
-        animation: ticker-{ribbon_id} {speed} linear infinite;
-        font-size: 0.82rem;
-        font-family: 'Inter', sans-serif;
-        color: #f3f4f6;
-    }}
-    @keyframes ticker-{ribbon_id} {{
-        0%   {{ transform: translateX(0); }}
-        100% {{ transform: translateX(-50%); }}
-    }}
-    .idx-item  {{ margin-right: 48px; }}
-    .news-item {{ margin-right: 60px; }}
-    </style>
-    <div class="ribbon-wrap-{ribbon_id}">
-      <div class="ribbon-track-{ribbon_id}">{track}</div>
-    </div>
-    """
+<style>
+.ribbon-wrap-{ribbon_id} {{
+    overflow: hidden;
+    background: {bg_color};
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    position: relative;
+}}
+.ribbon-track-{ribbon_id} {{
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker-{ribbon_id} {speed} linear infinite;
+    font-size: 0.82rem;
+    font-family: 'Inter', sans-serif;
+    color: #f3f4f6;
+}}
+@keyframes ticker-{ribbon_id} {{
+    0%   {{ transform: translateX(0); }}
+    100% {{ transform: translateX(-50%); }}
+}}
+.idx-item  {{ margin-right: 48px; }}
+.news-item {{ margin-right: 60px; }}
+</style>
+<div class="ribbon-wrap-{ribbon_id}">
+  <div class="ribbon-track-{ribbon_id}">{track}</div>
+</div>
+"""
 
 # Combine both ribbons into a single sticky wrapper
 with st.spinner("Loading market data..."):
@@ -225,8 +234,8 @@ news_html = render_ribbon_html(news_items, bg_color="#374151", speed="120s", rib
 
 sticky_wrapper = f"""
 <div style="position: sticky; top: 0rem; z-index: 999; background: #ffffff; padding-top: 5px; padding-bottom: 5px; margin-top: -15px;">
-    {idx_html}
-    {news_html}
+{idx_html}
+{news_html}
 </div>
 """
 st.markdown(sticky_wrapper, unsafe_allow_html=True)
@@ -299,10 +308,16 @@ tab0, tab1, tab2, tab3, tab4 = st.tabs([
 # Initialize Portfolio Engine scoped to the logged-in user
 user_id = st.session_state["user_id"]
 access_token = st.session_state.get("access_token")
-if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
-    st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
-    st.session_state['portfolio_user_id'] = user_id
-portfolio = st.session_state['portfolio']
+
+# For guest users, we bypass the portfolio engine entirely
+is_guest = user_id == "guest_user"
+portfolio = None
+
+if not is_guest:
+    if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
+        st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
+        st.session_state['portfolio_user_id'] = user_id
+    portfolio = st.session_state['portfolio']
 
 with tab0:
     render_education()
