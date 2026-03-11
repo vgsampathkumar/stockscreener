@@ -280,10 +280,17 @@ with tab1:
             
     if st.button("Run Screener", type="primary"):
         with st.spinner(f"Scanning {asset_class} in {region_choice}..."):
-            df_result, result_title = fetch_screener_df(asset_class, valuation, sector, region_choice)
-            st.session_state['screener_df'] = df_result
-            st.session_state['screener_title'] = result_title
-            st.session_state['screener_page'] = 0  # reset to first page
+            try:
+                df_result, result_title = fetch_screener_df(asset_class, valuation, sector, region_choice)
+                st.session_state['screener_df'] = df_result
+                st.session_state['screener_title'] = result_title
+                st.session_state['screener_page'] = 0  # reset to first page
+            except Exception as e:
+                err_msg = str(e).lower()
+                if "rate" in err_msg or "limit" in err_msg or "429" in err_msg:
+                    st.error("⚠️ **Yahoo Finance rate limit reached.** Too many requests — please wait 30 seconds and try again.")
+                else:
+                    st.error(f"⚠️ Screener error: {e}")
 
     # Display results (persisted in session state, survives reruns from page buttons)
     if 'screener_df' in st.session_state and st.session_state['screener_df'] is not None:
