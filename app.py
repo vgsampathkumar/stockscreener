@@ -5,6 +5,7 @@ from tools import screen_market, fetch_screener_df
 from agent import create_financial_agent, run_analysis
 from portfolio_engine import PaperPortfolio
 from paper_trade_ui import render_paper_trader
+from auth_ui import render_auth_page, render_user_header, is_authenticated
 
 st.set_page_config(
     page_title="Agentic Stock Screener & Analyst",
@@ -116,7 +117,13 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Application Header
+# ── Auth Gate ────────────────────────────────────────────────────────────────
+if not is_authenticated():
+    render_auth_page()
+    st.stop()
+
+# ── App Header (shown when authenticated) ────────────────────────────────────
+render_user_header()
 st.title("📈 Agentic Stock Screener & Analyst")
 st.markdown("An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.")
 
@@ -234,9 +241,11 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "4️⃣ Paper Trader"
 ])
 
-# Initialize Portfolio Engine
-if 'portfolio' not in st.session_state:
-    st.session_state['portfolio'] = PaperPortfolio()
+# Initialize Portfolio Engine scoped to the logged-in user
+user_id = st.session_state["user_id"]
+if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
+    st.session_state['portfolio'] = PaperPortfolio(user_id=user_id)
+    st.session_state['portfolio_user_id'] = user_id
 portfolio = st.session_state['portfolio']
 
 with tab1:
