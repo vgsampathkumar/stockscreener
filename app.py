@@ -243,8 +243,9 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 # Initialize Portfolio Engine scoped to the logged-in user
 user_id = st.session_state["user_id"]
+access_token = st.session_state.get("access_token")
 if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
-    st.session_state['portfolio'] = PaperPortfolio(user_id=user_id)
+    st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
     st.session_state['portfolio_user_id'] = user_id
 portfolio = st.session_state['portfolio']
 
@@ -308,7 +309,13 @@ with tab1:
             # Slice page
             start = page * PAGE_SIZE
             end = min(start + PAGE_SIZE, total_rows)
-            df_page = df_all.iloc[start:end]
+            df_page = df_all.iloc[start:end].copy()
+            
+            # Convert Market Cap from raw dollars to billions
+            if "Market Cap" in df_page.columns:
+                df_page["Market Cap"] = df_page["Market Cap"].apply(
+                    lambda x: x / 1e9 if isinstance(x, (int, float)) and x > 0 else x
+                )
             
             # Native st.dataframe — has built-in column sort on click
             st.dataframe(

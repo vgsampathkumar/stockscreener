@@ -18,15 +18,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _get_supabase() -> Client:
-    """Create Supabase client from Streamlit secrets."""
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+def _get_supabase(access_token: str = None) -> Client:
+    """Create Supabase client from Streamlit secrets, optionally authenticated as the user."""
+    client = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    if access_token:
+        # Set the user's JWT so RLS auth.uid() resolves correctly
+        client.postgrest.auth(access_token)
+    return client
 
 
 class PaperPortfolio:
-    def __init__(self, user_id: str):
+    def __init__(self, user_id: str, access_token: str = None):
         self.user_id = user_id
-        self.sb = _get_supabase()
+        self.sb = _get_supabase(access_token)
         self._ensure_cash_initialized()
 
     # ── Bootstrap ────────────────────────────────────────────────────────────
