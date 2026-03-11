@@ -180,11 +180,11 @@ def get_news_ribbon_html():
             pass
     return items
 
-def render_ribbon(items, bg_color, speed="40s", ribbon_id="ribbon"):
+def render_ribbon_html(items, bg_color, speed="40s", ribbon_id="ribbon"):
     if not items:
-        return
+        return ""
     track = "".join(items * 2)
-    st.markdown(f"""
+    return f"""
     <style>
     .ribbon-wrap-{ribbon_id} {{
         overflow: hidden;
@@ -213,15 +213,23 @@ def render_ribbon(items, bg_color, speed="40s", ribbon_id="ribbon"):
     <div class="ribbon-wrap-{ribbon_id}">
       <div class="ribbon-track-{ribbon_id}">{track}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """
 
-# Render index ribbon first, news ribbon below
+# Combine both ribbons into a single sticky wrapper
 with st.spinner("Loading market data..."):
     index_items = get_index_ribbon_html()
     news_items  = get_news_ribbon_html()
 
-render_ribbon(index_items, bg_color="#111827",  speed="60s", ribbon_id="idx")
-render_ribbon(news_items,  bg_color="#374151",  speed="120s", ribbon_id="news")
+idx_html = render_ribbon_html(index_items, bg_color="#111827", speed="60s", ribbon_id="idx")
+news_html = render_ribbon_html(news_items, bg_color="#374151", speed="120s", ribbon_id="news")
+
+sticky_wrapper = f"""
+<div style="position: sticky; top: 0rem; z-index: 999; background: #ffffff; padding-top: 5px; padding-bottom: 5px; margin-top: -15px;">
+    {idx_html}
+    {news_html}
+</div>
+"""
+st.markdown(sticky_wrapper, unsafe_allow_html=True)
 
 
 # Groq API key from secrets for AI agents
@@ -590,6 +598,10 @@ with tab3:
     render_chat(groq_api_key, tab_context="macro")
 
 with tab4:
-    render_paper_trader(portfolio)
-    render_chat(groq_api_key, tab_context="paper_trader")
+    if st.session_state.get("user_id") == "guest_user":
+        st.warning("⚠️ **Guest Mode**")
+        st.markdown("Paper Trading requires an account to securely save and track your portfolio data. Please Sign Out and create a free account to use this feature.")
+    else:
+        render_paper_trader(portfolio)
+        render_chat(groq_api_key, tab_context="paper_trader")
 
