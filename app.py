@@ -135,8 +135,14 @@ if not is_authenticated():
 
 # ── App Header (shown when authenticated) ────────────────────────────────────
 render_user_header()
-st.title("📈 Agentic Stock Screener & Analyst")
-st.markdown("An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.")
+
+# Define the Title and Description elements separately
+header_title_html = """
+<div style="background: white; padding-bottom: 2px;">
+    <h1 style="margin-bottom: 0;">📈 Agentic Stock Screener & Analyst</h1>
+    <p style="color: #6b7280; margin-top: 4px; margin-bottom: 8px;">An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.</p>
+</div>
+"""
 
 # ── Scrolling Ribbons ────────────────────────────────────────────────────────
 import yfinance as yf_ribbon
@@ -232,13 +238,53 @@ with st.spinner("Loading market data..."):
 idx_html = render_ribbon_html(index_items, bg_color="#111827", speed="60s", ribbon_id="idx")
 news_html = render_ribbon_html(news_items, bg_color="#374151", speed="120s", ribbon_id="news")
 
-sticky_wrapper = f"""
-<div style="position: sticky; top: 0rem; z-index: 999; background: #ffffff; padding-top: 5px; padding-bottom: 5px; margin-top: -15px;">
-{idx_html}
-{news_html}
+# Combine Title, Description, and both ribbons into a single sticky wrapper
+# top: 2.875rem (approx 46px) is roughly where it sits under the native Streamlit header
+sticky_header_html = f"""
+<div class="header-sticky-wrapper">
+    {header_title_html}
+    {idx_html}
+    {news_html}
 </div>
+
+<style>
+    /* 1. Target the outer Streamlit element container that holds our wrapper */
+    div[data-testid="stVerticalBlock"] > div:has(.header-sticky-wrapper) {{
+        position: sticky;
+        top: 2.875rem; /* Native Streamlit header height */
+        z-index: 999;
+        background: white;
+        padding-bottom: 15px;
+        margin-top: -1.5rem;
+    }}
+
+    /* Ensure the wrapper itself doesn't cause extra spacing */
+    .header-sticky-wrapper {{
+        width: 100%;
+    }}
+
+    /* 2. Fix Streamlit's default overflow and CSS containment that breaks child sticky positioning */
+    div[data-testid="stVerticalBlock"] > div:has([data-testid="stTabs"]),
+    [data-testid="stTabs"] {{
+        overflow: visible !important;
+        contain: none !important;
+        transform: none !important;
+        position: static !important;
+    }}
+
+    /* 3. Make ONLY the tab headers sticky, just below our header */
+    [data-testid="stTabs"] > div:first-child {{
+        position: sticky !important;
+        top: calc(2.875rem + 155px) !important; /* Adjusted for header height */
+        z-index: 998 !important;
+        background: white;
+        padding-top: 10px;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+    }}
+</style>
 """
-st.markdown(sticky_wrapper, unsafe_allow_html=True)
+st.markdown(sticky_header_html, unsafe_allow_html=True)
 
 
 # Groq API key from secrets for AI agents

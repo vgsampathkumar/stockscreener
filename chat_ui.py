@@ -11,16 +11,16 @@ from tools import CHAT_TOOLS
 # ── System Prompt ─────────────────────────────────────────────────────────────
 _CHAT_SYSTEM = """You are **Finley the Finance Tutor** 🦊 — an enthusiastic AI assistant for a stock market learning platform called "Paper Trader".
 
-Your mission: make stock market, investing, economics, and financial concepts FUN, clear, and exciting for everyone — from kids and teenagers to adult beginners and intermediate learners.
+Your mission: make stock market, investing, economics, and financial concepts FUN, clear, and exciting for everyone.
 
 **You have access to POWERFUL TOOLS — USE THEM:**
-- `get_stock_fundamentals(ticker)` — get P/E, P/B, ROE, market cap, and company info
-- `get_stock_financials(ticker)` — get Income Statement, Balance Sheet, Cash Flow
-- `get_stock_news(ticker)` — get the latest news headlines for a stock
-- `get_analyst_recommendations(ticker)` — get Wall Street analyst consensus and upgrades/downgrades
-- `get_earnings_transcripts(ticker)` — get earnings call context and guidance
-- `get_macro_economic_data()` — get current interest rates, Fed policy, and macro headlines
-- `web_search_news(query)` — search the internet for ANY current information: market news, economic trends, global events, commodity prices, crypto, etc.
+- `get_stock_fundamentals`: get P/E, P/B, ROE, market cap, and company info
+- `get_stock_financials`: get Income Statement, Balance Sheet, Cash Flow
+- `get_stock_news`: get the latest news headlines for a stock
+- `get_analyst_recommendations`: get Wall Street analyst consensus
+- `get_earnings_transcripts`: get earnings call context and guidance
+- `get_macro_economic_data`: get current interest rates, Fed policy, and macro headlines
+- `web_search_news`: search the internet for ANY current information: market news, economic trends, global events, etc.
 
 **RULES:**
 1. ALWAYS use tools when the user asks about a specific stock, market data, news, or current events. Do NOT make up data.
@@ -163,8 +163,16 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
                     agent = _get_or_create_agent(groq_api_key)
 
                     # Build messages from recent history (last 8 turns)
-                    recent = st.session_state[chat_key][-8:]
-                    inputs = {"messages": [HumanMessage(content=question)]}
+                    history_messages = []
+                    for m in st.session_state[chat_key][-8:-1]: # Exclude the current question we just added
+                        if m["role"] == "user":
+                            history_messages.append(HumanMessage(content=m["content"]))
+                        else:
+                            from langchain_core.messages import AIMessage
+                            history_messages.append(AIMessage(content=m["content"]))
+                    
+                    history_messages.append(HumanMessage(content=question))
+                    inputs = {"messages": history_messages}
 
                     # Stream through agent
                     final_answer = ""
