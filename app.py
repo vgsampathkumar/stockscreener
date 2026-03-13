@@ -333,66 +333,66 @@ tab0, tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ── Sticky Tabs via JS ──────────────────────────────────────────────────────
-# Streamlit's parent containers use `contain: content` which breaks CSS sticky.
-# This JS removes that containment on ancestor elements and applies sticky directly.
-st.markdown("""
+# Streamlit strips <script> from st.markdown. Use st.components.v1.html which
+# runs in an iframe — from there we access window.parent to modify the main DOM.
+import streamlit.components.v1 as components
+components.html("""
 <script>
 (function() {
+    var parentDoc = window.parent.document;
+    
     function makeTabsSticky() {
-        // Find the tab list element
-        var tabList = document.querySelector('[role="tablist"]');
+        // Find the tab list element in the parent document
+        var tabList = parentDoc.querySelector('[role="tablist"]');
         if (!tabList) {
-            setTimeout(makeTabsSticky, 200);
+            setTimeout(makeTabsSticky, 300);
             return;
         }
         
-        // Get the tab bar container (the div wrapping the tab buttons)
+        // Get the stTabs container
         var tabBar = tabList.closest('[data-testid="stTabs"]');
-        if (!tabBar) tabBar = tabList.parentElement;
+        if (!tabBar) {
+            tabBar = tabList.parentElement;
+        }
         
-        // Walk up the DOM and remove `contain` from all ancestors
+        // We need to target the tab buttons row only (not the tab content)
+        // The tablist div itself is what we want sticky
+        var tabButtonRow = tabList;
+        
+        // Walk up the DOM and remove `contain` from ALL ancestors
         var el = tabBar;
-        while (el && el !== document.body) {
-            var style = window.getComputedStyle(el);
-            if (style.contain && style.contain !== 'none') {
-                el.style.contain = 'none';
+        while (el && el !== parentDoc.body) {
+            var cs = window.parent.getComputedStyle(el);
+            if (cs.contain && cs.contain !== 'none') {
+                el.style.setProperty('contain', 'none', 'important');
             }
-            // Also ensure overflow isn't clipping
-            if (style.overflow === 'hidden') {
-                el.style.overflow = 'visible';
+            if (cs.overflow === 'hidden' || cs.overflow === 'auto') {
+                el.style.setProperty('overflow', 'visible', 'important');
             }
             el = el.parentElement;
         }
         
-        // Make the tab list container sticky
-        // Find the immediate stVerticalBlock parent that holds the tabs
-        var stickyTarget = tabBar;
-        if (stickyTarget) {
-            stickyTarget.style.position = 'sticky';
-            stickyTarget.style.top = '0';
-            stickyTarget.style.zIndex = '998';
-            stickyTarget.style.background = 'white';
-            stickyTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            stickyTarget.style.paddingTop = '4px';
-        }
+        // Apply sticky to the stTabs wrapper div that holds the tab buttons
+        // We want just the buttons row to be sticky, not the entire tab content
+        tabBar.style.setProperty('position', 'sticky', 'important');
+        tabBar.style.setProperty('top', '0px', 'important');
+        tabBar.style.setProperty('z-index', '998', 'important');
+        tabBar.style.setProperty('background', 'white', 'important');
     }
     
-    // Run after DOM is ready and on each Streamlit rerun
-    if (document.readyState === 'complete') {
+    // Initial run
+    setTimeout(makeTabsSticky, 500);
+    
+    // Re-apply periodically for Streamlit reruns
+    var retryCount = 0;
+    var interval = setInterval(function() {
         makeTabsSticky();
-    } else {
-        window.addEventListener('load', makeTabsSticky);
-    }
-    // Re-apply on Streamlit reruns (MutationObserver)
-    var observer = new MutationObserver(function(mutations) {
-        makeTabsSticky();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    // Stop observing after 10 seconds to avoid performance issues
-    setTimeout(function() { observer.disconnect(); }, 10000);
+        retryCount++;
+        if (retryCount > 20) clearInterval(interval);
+    }, 1000);
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # Initialize Portfolio Engine scoped to the logged-in user
 user_id = st.session_state.get("user_id")
