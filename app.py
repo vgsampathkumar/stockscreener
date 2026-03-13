@@ -332,6 +332,68 @@ tab0, tab1, tab2, tab3, tab4 = st.tabs([
     "4️⃣ Paper Trader"
 ])
 
+# ── Sticky Tabs via JS ──────────────────────────────────────────────────────
+# Streamlit's parent containers use `contain: content` which breaks CSS sticky.
+# This JS removes that containment on ancestor elements and applies sticky directly.
+st.markdown("""
+<script>
+(function() {
+    function makeTabsSticky() {
+        // Find the tab list element
+        var tabList = document.querySelector('[role="tablist"]');
+        if (!tabList) {
+            setTimeout(makeTabsSticky, 200);
+            return;
+        }
+        
+        // Get the tab bar container (the div wrapping the tab buttons)
+        var tabBar = tabList.closest('[data-testid="stTabs"]');
+        if (!tabBar) tabBar = tabList.parentElement;
+        
+        // Walk up the DOM and remove `contain` from all ancestors
+        var el = tabBar;
+        while (el && el !== document.body) {
+            var style = window.getComputedStyle(el);
+            if (style.contain && style.contain !== 'none') {
+                el.style.contain = 'none';
+            }
+            // Also ensure overflow isn't clipping
+            if (style.overflow === 'hidden') {
+                el.style.overflow = 'visible';
+            }
+            el = el.parentElement;
+        }
+        
+        // Make the tab list container sticky
+        // Find the immediate stVerticalBlock parent that holds the tabs
+        var stickyTarget = tabBar;
+        if (stickyTarget) {
+            stickyTarget.style.position = 'sticky';
+            stickyTarget.style.top = '0';
+            stickyTarget.style.zIndex = '998';
+            stickyTarget.style.background = 'white';
+            stickyTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            stickyTarget.style.paddingTop = '4px';
+        }
+    }
+    
+    // Run after DOM is ready and on each Streamlit rerun
+    if (document.readyState === 'complete') {
+        makeTabsSticky();
+    } else {
+        window.addEventListener('load', makeTabsSticky);
+    }
+    // Re-apply on Streamlit reruns (MutationObserver)
+    var observer = new MutationObserver(function(mutations) {
+        makeTabsSticky();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // Stop observing after 10 seconds to avoid performance issues
+    setTimeout(function() { observer.disconnect(); }, 10000);
+})();
+</script>
+""", unsafe_allow_html=True)
+
 # Initialize Portfolio Engine scoped to the logged-in user
 user_id = st.session_state.get("user_id")
 
