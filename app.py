@@ -340,7 +340,10 @@ st.markdown("""
 <style>
     /* Target the tab buttons row (the [role="tablist"] container).
        Use position:fixed to break out of containment. */
-    [data-testid="stTabs"] [role="tablist"] {
+    /* Target ONLY the top-level navigation tabs.
+       We exclude any tabs that are nested inside a tab panel
+       (which is how Streamlit handles nested st.tabs). */
+    [data-testid="stTabs"]:not([role="tabpanel"] [data-testid="stTabs"]) [role="tablist"] {
         position: fixed !important;
         top: 0px !important;
         left: 2.8rem !important;
@@ -354,8 +357,8 @@ st.markdown("""
         gap: 0 !important;
     }
 
-    /* Ensure tab buttons are compact enough to all fit */
-    [data-testid="stTabs"] [role="tablist"] button {
+    /* Ensure ONLY the top-level tab buttons are compact */
+    [data-testid="stTabs"]:not([role="tabpanel"] [data-testid="stTabs"]) [role="tablist"] button {
         font-size: 0.82rem !important;
         padding: 6px 10px !important;
         white-space: nowrap !important;
