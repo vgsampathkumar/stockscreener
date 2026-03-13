@@ -332,67 +332,38 @@ tab0, tab1, tab2, tab3, tab4 = st.tabs([
     "4️⃣ Paper Trader"
 ])
 
-# ── Sticky Tabs via JS ──────────────────────────────────────────────────────
-# Streamlit strips <script> from st.markdown. Use st.components.v1.html which
-# runs in an iframe — from there we access window.parent to modify the main DOM.
-import streamlit.components.v1 as components
-components.html("""
-<script>
-(function() {
-    var parentDoc = window.parent.document;
-    
-    function makeTabsSticky() {
-        // Find the tab list element in the parent document
-        var tabList = parentDoc.querySelector('[role="tablist"]');
-        if (!tabList) {
-            setTimeout(makeTabsSticky, 300);
-            return;
-        }
-        
-        // Get the stTabs container
-        var tabBar = tabList.closest('[data-testid="stTabs"]');
-        if (!tabBar) {
-            tabBar = tabList.parentElement;
-        }
-        
-        // We need to target the tab buttons row only (not the tab content)
-        // The tablist div itself is what we want sticky
-        var tabButtonRow = tabList;
-        
-        // Walk up the DOM and remove `contain` from ALL ancestors
-        var el = tabBar;
-        while (el && el !== parentDoc.body) {
-            var cs = window.parent.getComputedStyle(el);
-            if (cs.contain && cs.contain !== 'none') {
-                el.style.setProperty('contain', 'none', 'important');
-            }
-            if (cs.overflow === 'hidden' || cs.overflow === 'auto') {
-                el.style.setProperty('overflow', 'visible', 'important');
-            }
-            el = el.parentElement;
-        }
-        
-        // Apply sticky to the stTabs wrapper div that holds the tab buttons
-        // We want just the buttons row to be sticky, not the entire tab content
-        tabBar.style.setProperty('position', 'sticky', 'important');
-        tabBar.style.setProperty('top', '0px', 'important');
-        tabBar.style.setProperty('z-index', '998', 'important');
-        tabBar.style.setProperty('background', 'white', 'important');
+# ── Sticky Tabs via CSS ─────────────────────────────────────────────────────
+# `position: sticky` is broken by Streamlit's CSS `contain: content` on parent
+# divs. Using `position: fixed` instead, which positions relative to the
+# viewport and bypasses containment entirely.
+st.markdown("""
+<style>
+    /* Target the tab buttons row (the [role="tablist"] container).
+       Use position:fixed to break out of containment. */
+    [data-testid="stTabs"] [role="tablist"] {
+        position: fixed !important;
+        top: 0px !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        z-index: 999 !important;
+        background: white !important;
+        padding: 8px 1rem 4px 5rem !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+        border-bottom: 2px solid #f3f4f6 !important;
     }
-    
-    // Initial run
-    setTimeout(makeTabsSticky, 500);
-    
-    // Re-apply periodically for Streamlit reruns
-    var retryCount = 0;
-    var interval = setInterval(function() {
-        makeTabsSticky();
-        retryCount++;
-        if (retryCount > 20) clearInterval(interval);
-    }, 1000);
-})();
-</script>
-""", height=0)
+
+    /* Push the content down so it does not hide behind the fixed tab bar */
+    [data-testid="stTabs"] > div:nth-child(2) {
+        padding-top: 52px !important;
+    }
+
+    /* Hide the native Streamlit header to avoid stacking */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Initialize Portfolio Engine scoped to the logged-in user
 user_id = st.session_state.get("user_id")
