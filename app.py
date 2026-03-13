@@ -254,33 +254,14 @@ sticky_header_html = f"""
         top: 2.875rem; /* Native Streamlit header height */
         z-index: 999;
         background: white;
-        padding-bottom: 15px;
+        padding-bottom: 2px;
         margin-top: -1.5rem;
     }}
 
     /* Ensure the wrapper itself doesn't cause extra spacing */
     .header-sticky-wrapper {{
         width: 100%;
-    }}
-
-    /* 2. Fix Streamlit's default overflow and CSS containment that breaks child sticky positioning */
-    div[data-testid="stVerticalBlock"] > div:has([data-testid="stTabs"]),
-    [data-testid="stTabs"] {{
-        overflow: visible !important;
-        contain: none !important;
-        transform: none !important;
-        position: static !important;
-    }}
-
-    /* 3. Make ONLY the tab headers sticky, just below our header */
-    [data-testid="stTabs"] > div:first-child {{
-        position: sticky !important;
-        top: calc(2.875rem + 155px) !important; /* Adjusted for header height */
-        z-index: 998 !important;
-        background: white;
-        padding-top: 10px;
-        padding-bottom: 5px;
-        margin-bottom: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }}
 </style>
 """
