@@ -343,14 +343,22 @@ st.markdown("""
     [data-testid="stTabs"] [role="tablist"] {
         position: fixed !important;
         top: 0px !important;
-        left: 0 !important;
+        left: 2.8rem !important;
         right: 0 !important;
-        width: 100% !important;
-        z-index: 999 !important;
+        z-index: 1001 !important;
         background: white !important;
-        padding: 8px 1rem 4px 5rem !important;
+        padding: 6px 0.5rem 2px 0.5rem !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
         border-bottom: 2px solid #f3f4f6 !important;
+        display: flex !important;
+        gap: 0 !important;
+    }
+
+    /* Ensure tab buttons are compact enough to all fit */
+    [data-testid="stTabs"] [role="tablist"] button {
+        font-size: 0.82rem !important;
+        padding: 6px 10px !important;
+        white-space: nowrap !important;
     }
 
     /* Push the content down so it does not hide behind the fixed tab bar */
@@ -358,9 +366,9 @@ st.markdown("""
         padding-top: 52px !important;
     }
 
-    /* Hide the native Streamlit header to avoid stacking */
+    /* Keep native Streamlit header (sidebar toggle) visible but below tabs */
     header[data-testid="stHeader"] {
-        display: none !important;
+        z-index: 1000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
