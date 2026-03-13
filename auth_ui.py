@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st # Session refresh enabled
 from supabase import create_client, Client
 
 def get_supabase() -> Client:
@@ -144,6 +144,29 @@ def render_user_header():
                 pass
             for key in ["user_id", "user_email", "access_token", "selected_account",
                         "show_order_ticket", "show_quote_modal", "guest_db"]:
+                st.session_state.pop(key, None)
+            st.rerun()
+
+
+def sync_supabase_session():
+    """
+    Checks the Supabase session and updates st.session_state if refreshed.
+    Call this on every app rerun to ensure the access_token is valid.
+    """
+    if st.session_state.get("user_id") and st.session_state.get("user_id") != "guest_user":
+        supabase = get_supabase()
+        try:
+            # get_session() returns current session if valid, or refreshes if expired/near-expiry
+            # provided the refresh_token is available in the client's auth state.
+            res = supabase.auth.get_session()
+            if res and res.session:
+                new_token = res.session.access_token
+                if st.session_state.get("access_token") != new_token:
+                    st.session_state["access_token"] = new_token
+        except Exception as e:
+            # If session is invalid/expired and can't be refreshed, sign out
+            st.warning(f"Session expired. Please sign in again. ({e})")
+            for key in ["user_id", "user_email", "access_token", "selected_account"]:
                 st.session_state.pop(key, None)
             st.rerun()
 

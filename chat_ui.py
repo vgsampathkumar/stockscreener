@@ -115,12 +115,13 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
         )
         return
 
-    # Storage key unique per tab so chat histories are separate
-    chat_key = f"chat_history_{tab_context}"
+    # Storage keys unique per tab so chat histories are separate
+    display_key = f"chat_display_{tab_context}"    # list of {role, content} for rendering
+    lc_key = f"chat_lc_{tab_context}"              # list of LangChain message objects for the agent
     pending_key = f"chat_pending_{tab_context}"
 
-    if chat_key not in st.session_state:
-        st.session_state[chat_key] = [
+    if display_key not in st.session_state:
+        st.session_state[display_key] = [
             {
                 "role": "assistant",
                 "content": (
@@ -131,9 +132,11 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
                 ),
             }
         ]
+    if lc_key not in st.session_state:
+        st.session_state[lc_key] = []
 
     # Render chat history
-    for msg in st.session_state[chat_key]:
+    for msg in st.session_state[display_key]:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
@@ -151,8 +154,8 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
     question = typed_q or st.session_state.pop(pending_key, None)
 
     if question:
-        # Save user message
-        st.session_state[chat_key].append({"role": "user", "content": question})
+        # Save user message to display history
+        st.session_state[display_key].append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
 
@@ -162,23 +165,21 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
                 try:
                     agent = _get_or_create_agent(groq_api_key)
 
-                    # Build messages from recent history (last 8 turns)
-                    history_messages = []
-                    for m in st.session_state[chat_key][-8:-1]: # Exclude the current question we just added
-                        if m["role"] == "user":
-                            history_messages.append(HumanMessage(content=m["content"]))
-                        else:
-                            from langchain_core.messages import AIMessage
-                            history_messages.append(AIMessage(content=m["content"]))
-                    
-                    history_messages.append(HumanMessage(content=question))
-                    inputs = {"messages": history_messages}
+                    # Build input: use stored LangChain history (last 10 messages)
+                    # plus current question
+                    recent_lc = st.session_state[lc_key][-10:]
+                    recent_lc_copy = list(recent_lc)  # shallow copy
+                    recent_lc_copy.append(HumanMessage(content=question))
+                    inputs = {"messages": recent_lc_copy}
 
                     # Stream through agent
                     final_answer = ""
                     tool_log = []
+                    all_new_messages = []  # collect all messages from this run
+
                     for event in agent.stream(inputs, stream_mode="values"):
                         msg = event["messages"][-1]
+                        all_new_messages = event["messages"]  # keep updating to get final state
                         if hasattr(msg, 'tool_calls') and msg.tool_calls:
                             for tc in msg.tool_calls:
                                 tool_log.append(tc['name'])
@@ -189,6 +190,17 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
 
                     if not final_answer:
                         final_answer = "I wasn't able to generate a response. Please try rephrasing your question! 🤔"
+
+                    # Store the FULL message sequence from this turn (user + tool calls + tool results + final AI)
+                    # This preserves the tool execution context for future turns
+                    # We only keep messages that were newly generated (after the recent_lc prefix)
+                    prefix_len = len(recent_lc_copy) - 1  # -1 for the HumanMessage we added
+                    new_msgs = all_new_messages[len(recent_lc):]  # everything after our prefix
+                    st.session_state[lc_key].extend(new_msgs)
+
+                    # Trim LangChain history to prevent unbounded growth (keep last 20 messages)
+                    if len(st.session_state[lc_key]) > 20:
+                        st.session_state[lc_key] = st.session_state[lc_key][-20:]
 
                     # Show tool usage if any
                     if tool_log:
@@ -204,5 +216,6 @@ def render_chat(groq_api_key: str, tab_context: str = "education"):
                     )
                     st.markdown(final_answer)
 
-        st.session_state[chat_key].append({"role": "assistant", "content": final_answer})
+        st.session_state[display_key].append({"role": "assistant", "content": final_answer})
         st.rerun()
+

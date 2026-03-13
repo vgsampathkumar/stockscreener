@@ -1,11 +1,11 @@
-import streamlit as st
+import streamlit as st # Session refresh enabled
 import os
 import json
 from tools import screen_market, fetch_screener_df
 from agent import create_financial_agent, run_analysis
 from portfolio_engine import PaperPortfolio
 from paper_trade_ui import render_paper_trader
-from auth_ui import render_auth_page, render_user_header, is_authenticated
+from auth_ui import render_auth_page, render_user_header, is_authenticated, sync_supabase_session
 from education_ui import render_education
 from chat_ui import render_chat
 
@@ -333,17 +333,27 @@ tab0, tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # Initialize Portfolio Engine scoped to the logged-in user
-user_id = st.session_state["user_id"]
-access_token = st.session_state.get("access_token")
+user_id = st.session_state.get("user_id")
 
 # For guest users, we bypass the portfolio engine entirely
 is_guest = user_id == "guest_user"
 portfolio = None
 
-if not is_guest:
+if user_id and not is_guest:
+    # 1. Sync session at the start of every rerun to refresh JWT if needed
+    sync_supabase_session()
+    
+    # 2. Get the latest token from session state
+    access_token = st.session_state.get("access_token")
+    
+    # 3. Handle Portfolio instance persistence and token refreshing
     if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
         st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
         st.session_state['portfolio_user_id'] = user_id
+    else:
+        # Update the existing instance with the (possibly refreshed) token
+        st.session_state['portfolio'].refresh_client(access_token)
+        
     portfolio = st.session_state['portfolio']
 
 with tab0:

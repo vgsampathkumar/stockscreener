@@ -270,9 +270,11 @@ def get_earnings_transcripts(ticker: str) -> str:
         return f"Error fetching earnings data for {ticker}: {str(e)}"
 
 @tool
-def get_macro_economic_data() -> str:
+def get_macro_economic_data(query: str = "latest macro economic news") -> str:
     """Fetches recent macroeconomic news, Federal Reserve policy statements, and interest rate chatter.
     Use this to correlate market conditions (rates, inflation, Fed meetings) with portfolio holdings.
+    Args:
+        query (str): Optional focus area for the macro data lookup (e.g. 'interest rates', 'inflation', 'Fed policy'). Defaults to general macro news.
     """
     try:
         # We can use the 10-Year Treasury Yield (^TNX) and SPY as proxies to get macro news

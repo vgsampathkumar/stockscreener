@@ -33,6 +33,11 @@ class PaperPortfolio:
         self.sb = _get_supabase(access_token)
         self._ensure_cash_initialized()
 
+    def refresh_client(self, access_token: str):
+        """Update the internal Supabase client with a new access token."""
+        if access_token and access_token != "guest_token_123":
+            self.sb.postgrest.auth(access_token)
+
     # ── Bootstrap ────────────────────────────────────────────────────────────
 
     def _ensure_cash_initialized(self):
