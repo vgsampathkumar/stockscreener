@@ -98,7 +98,7 @@ def render_auth_page():
         # ── Guest Login ──────────────────────────────────────────────────────
         with tab_guest:
             st.markdown("<br>", unsafe_allow_html=True)
-            st.info("Try out the Agentic Stock Screener & Analyst without creating an account. Portfolios will not be permanently saved.")
+            st.info("Try out the Agentic Stock Screener Analyst & Papertrader without creating an account. Portfolios will not be permanently saved.")
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Continue as Guest", key="btn_guest", use_container_width=True):
                 # We use a dummy guest fallback in portfolio_engine

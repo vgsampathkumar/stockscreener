@@ -10,7 +10,7 @@ from education_ui import render_education
 from chat_ui import render_chat
 
 st.set_page_config(
-    page_title="Agentic Stock Screener & Analyst",
+    page_title="Agentic Stock Screener Analyst & Papertrader",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -139,7 +139,7 @@ render_user_header()
 # Define the Title and Description elements separately
 header_title_html = """
 <div style="background: white; padding-bottom: 2px;">
-    <h1 style="margin-bottom: 0;">📈 Agentic Stock Screener & Analyst</h1>
+    <h1 style="margin-bottom: 0;">📈 Agentic Stock Screener Analyst & Papertrader</h1>
     <p style="color: #6b7280; margin-top: 4px; margin-bottom: 8px;">An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.</p>
 </div>
 """
