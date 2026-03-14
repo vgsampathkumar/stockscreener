@@ -16,10 +16,10 @@ def render_auth_page():
     supabase = get_supabase()
 
     st.markdown("""
-    <div style="max-width:420px; margin:60px auto 0 auto;">
+    <div style="max-width:500px; margin:60px auto 0 auto;">
         <div style="text-align:center; margin-bottom:32px;">
-            <h1 style="color:#111827; font-size:2.4em; margin:0;">📈 Paper Trader</h1>
-            <p style="color:#6b7280; margin-top:8px;">Powered by Fidelity-style simulated trading</p>
+            <h1 style="color:#111827; font-size:2.2em; margin:0; line-height: 1.2;">📈 TradeFox:<br>AI Paper Money Trading Academy!</h1>
+            <p style="color:#6b7280; margin-top:8px;">Powered by Agentic AI Simulated trading</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -98,7 +98,7 @@ def render_auth_page():
         # ── Guest Login ──────────────────────────────────────────────────────
         with tab_guest:
             st.markdown("<br>", unsafe_allow_html=True)
-            st.info("Try out the Agentic Stock Screener Analyst & Papertrader without creating an account. Portfolios will not be permanently saved.")
+            st.info("Try out the TradeFox: AI Paper Trading Academy without creating an account. Portfolios will not be permanently saved.")
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Continue as Guest", key="btn_guest", use_container_width=True):
                 # We use a dummy guest fallback in portfolio_engine
@@ -114,9 +114,9 @@ def render_user_header():
         <style>
         .user-badge-fixed {{
             position: fixed;
-            top: 60px;
-            right: 20px;
-            z-index: 1000000;
+            top: 6px;
+            right: 80px;
+            z-index: 1000002;
             background: rgba(255, 255, 255, 0.95);
             padding: 8px 16px;
             border-radius: 8px;
@@ -134,6 +134,17 @@ def render_user_header():
     """, unsafe_allow_html=True)
     
     with st.sidebar:
+        st.markdown("""
+            <style>
+            .stButton>button[key="btn_signout"] {
+                background-color: #FF0000 !important;
+                color: white !important;
+            }
+            .stButton>button[key="btn_signout"]:hover {
+                background-color: #CC0000 !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         st.markdown("---")
         if st.button("🚪 Sign Out", key="btn_signout", use_container_width=True):
             try:

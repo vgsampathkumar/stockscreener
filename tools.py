@@ -325,62 +325,48 @@ import requests as _req
 @tool
 def web_search_news(query: str) -> str:
     """Search the web for the latest news, market trends, economic data, or any topic.
-    Use this to get current real-time information about finance, economics,
-    global events, stock market news, and any general knowledge questions.
+    Uses Tavily Search API for highly accurate, real-time results tailored for LLMs.
     Args:
         query (str): The search query, e.g. 'latest Federal Reserve interest rate decision 2026'
     """
     try:
-        url = "https://html.duckduckgo.com/html/"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = _req.get(url, params={"q": query}, headers=headers, timeout=10)
+        api_key = st.secrets.get("TAVILY_API_KEY")
+        if not api_key:
+            return "⚠️ Tavily API key missing. Please ensure `TAVILY_API_KEY` is in `.streamlit/secrets.toml`."
+
+        url = "https://api.tavily.com/search"
+        payload = {
+            "api_key": api_key,
+            "query": query,
+            "search_depth": "advanced",
+            "include_answer": True,
+            "max_results": 5
+        }
+        
+        resp = _req.post(url, json=payload, timeout=10)
         resp.raise_for_status()
+        data = resp.json()
 
-        # Parse results from the HTML response
-        from html.parser import HTMLParser
-        results = []
-        class DDGParser(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self._in_result = False
-                self._in_snippet = False
-                self._current = {}
-            def handle_starttag(self, tag, attrs):
-                attrs_dict = dict(attrs)
-                if tag == "a" and "result__a" in attrs_dict.get("class", ""):
-                    self._in_result = True
-                    self._current["title"] = ""
-                    self._current["url"] = attrs_dict.get("href", "")
-                if tag == "a" and "result__snippet" in attrs_dict.get("class", ""):
-                    self._in_snippet = True
-                    self._current["snippet"] = ""
-            def handle_endtag(self, tag):
-                if tag == "a" and self._in_result:
-                    self._in_result = False
-                if tag == "a" and self._in_snippet:
-                    self._in_snippet = False
-                    if self._current.get("title"):
-                        results.append(dict(self._current))
-                    self._current = {}
-            def handle_data(self, data):
-                if self._in_result:
-                    self._current["title"] = self._current.get("title", "") + data
-                if self._in_snippet:
-                    self._current["snippet"] = self._current.get("snippet", "") + data
-
-        parser = DDGParser()
-        parser.feed(resp.text)
-
+        results = data.get("results", [])
         if not results:
             return f"No search results found for '{query}'. Try a different search query."
 
         formatted = f"### Web Search Results for: {query}\n\n"
-        for i, r in enumerate(results[:8], 1):
-            formatted += f"**{i}. {r.get('title', 'No title')}**\n"
-            formatted += f"   {r.get('snippet', 'No description')}\n\n"
+        
+        # Include the AI-generated answer from Tavily if available
+        if data.get("answer"):
+            formatted += f"**Key Summary:** {data['answer']}\n\n"
+
+        for i, r in enumerate(results, 1):
+            title = r.get("title", r.get("url", "No title"))
+            url = r.get("url", "#")
+            content = r.get("content", "No description available.")
+            formatted += f"**{i}. [{title}]({url})**\n"
+            formatted += f"   {content}\n\n"
+            
         return formatted
     except Exception as e:
-        return f"Error performing web search: {str(e)}"
+        return f"Error performing web search with Tavily: {str(e)}"
 
 
 # All tools available to the agentic chatbot (finance + web search)

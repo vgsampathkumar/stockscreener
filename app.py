@@ -10,7 +10,7 @@ from education_ui import render_education
 from chat_ui import render_chat
 
 st.set_page_config(
-    page_title="Agentic Stock Screener Analyst & Papertrader",
+    page_title="TradeFox: AI Paper Money Trading Academy!",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -31,6 +31,22 @@ st.markdown("""
         background: #f3f4f6;
         border-right: 2px solid #e5e7eb;
     }
+    /* Darken and Resize Sidebar Labels */
+    [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span {
+        color: #000000 !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+    }
+    /* Ensure Sign Out and Back to Home button text is WHITE */
+    [data-testid="stSidebar"] button p {
+        color: #ffffff !important;
+    }
+    /* Ensure "How it works" list items are also black/larger */
+    [data-testid="stSidebar"] li {
+        color: #000000 !important;
+        font-size: 1.05rem !important;
+        font-weight: 500;
+    }
 
     /* ── Headers ────────────────────────────────────── */
     h1, h2, h3, h4 {
@@ -45,8 +61,8 @@ st.markdown("""
         font-weight: 600;
     }
     [data-testid="stTabs"] button[aria-selected="true"] {
-        color: #e11d48 !important;
-        border-bottom: 2px solid #e11d48 !important;
+        color: #FF0000 !important;
+        border-bottom: 2px solid #FF0000 !important;
     }
 
     /* ── Freeze Header ────────────────────────────── */
@@ -60,7 +76,7 @@ st.markdown("""
         background: #f9fafb;
         padding: 24px;
         border-radius: 12px;
-        border-left: 4px solid #e11d48;
+        border-left: 4px solid #FF0000;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         margin-top: 16px;
         color: #111827;
@@ -79,23 +95,23 @@ st.markdown("""
     tr:hover td { background-color: #fef2f2; }
 
     /* ── Metric Values ───────────────────────────────── */
-    div[data-testid="stMetricValue"] { color: #e11d48; }
+    div[data-testid="stMetricValue"] { color: #FF0000; }
 
     /* ── Primary Buttons ─────────────────────────────── */
     .stButton>button {
-        background: #e11d48;
+        background: #FF0000;
         color: #ffffff;
         border-radius: 8px;
         border: none;
         padding: 0.55rem 1.2rem;
         font-weight: 600;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(225,29,72,0.30);
+        box-shadow: 0 2px 8px rgba(255,0,0,0.30);
     }
     .stButton>button:hover {
-        background: #be123c;
+        background: #CC0000;
         transform: translateY(-1px);
-        box-shadow: 0 4px 16px rgba(225,29,72,0.45);
+        box-shadow: 0 4px 16px rgba(255,0,0,0.45);
     }
 
     /* ── Inputs / Selects ────────────────────────────── */
@@ -107,7 +123,7 @@ st.markdown("""
     }
 
     /* ── Spinners / Info Boxes ───────────────────────── */
-    .stSpinner > div { border-top-color: #e11d48 !important; }
+    .stSpinner > div { border-top-color: #FF0000 !important; }
     .stAlert { border-radius: 8px; }
 
     /* ── Dataframe / Table header ────────────────────── */
@@ -122,6 +138,32 @@ st.markdown("""
     ::-webkit-scrollbar-track { background: #f3f4f6; }
     ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #e11d48; }
+
+    /* ── Hide Radio Button Circles and Style Labels ── */
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] {
+        display: none;
+    }
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background: transparent !important;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 4px 8px !important;
+        margin-bottom: 4px;
+        transition: all 0.2s;
+    }
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background: #fef2f2 !important;
+    }
+    /* Hide the actual radio circle */
+    div[data-testid="stSidebar"] div[role="radiogroup"] [data-testid="stRadioButtonDot"] {
+        display: none !important;
+    }
+    /* Style the selected label */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-selected="true"] {
+        background: #fef2f2 !important;
+        border: 1px solid #FF0000 !important;
+        color: #FF0000 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -134,10 +176,29 @@ if not is_authenticated():
 render_user_header()
 
 header_title_html = """
-<div style="background: white; padding-bottom: 2px;">
-    <h1 style="margin-bottom: 0;"> Agentic Stock Screener Analyst & Papertrader</h1>
-    <p style="color: #6b7280; margin-top: 4px; margin-bottom: 8px;">An AI-powered financial analyst that screens for undervalued stocks, analyzes fundamentals, and provides actionable insights.</p>
+<div class="ultra-compact-header">
+    <span class="title-text">📈 TradeFox: AI Paper Money Trading Academy!</span>
+    <span class="desc-text"> | AI-powered analysis & insights</span>
 </div>
+
+<style>
+    .ultra-compact-header {
+        display: flex;
+        align-items: center;
+        background: transparent;
+        height: 28px;
+    }
+    .title-text {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #111827;
+        margin-right: 8px;
+    }
+    .desc-text {
+        font-size: 0.68rem;
+        color: #6b7280;
+    }
+</style>
 """
 
 # ── Scrolling Ribbons ────────────────────────────────────────────────────────
@@ -162,7 +223,7 @@ def get_index_ribbon_html():
                 prev  = hist['Close'].iloc[-2]
                 chg   = (price - prev) / prev * 100
                 arrow = "▲" if chg >= 0 else "▼"
-                color = "#ffffff" if chg >= 0 else "#fca5a5"
+                color = "#FF0000" if chg < 0 else "#22c55e" # Bright Red for negative
                 items.append(
                     f'<span class="idx-item"><b>{name}</b> &nbsp;'
                     f'<span style="color:#f9fafb">{price:,.2f}</span>&nbsp;'
@@ -175,77 +236,177 @@ def get_index_ribbon_html():
 def get_news_ribbon_html():
     items = []
     seen = set()
-    for sym in ["^GSPC", "^IXIC", "GC=F", "CL=F", "BTC-USD"]:
+    # Diversify news sources: US, Europe, Asia, India, Crypto, Commodities
+    global_tickers = [
+        "^GSPC", "^IXIC",          # US
+        "^FTSE", "^GDAXI", "^FCHI", # Europe (UK, Germany, France)
+        "^N225", "^HSI",           # Asia (Japan, HK)
+        "^BSESN",                  # India
+        "^AXJO",                   # Australia
+        "GC=F", "CL=F",            # Commodities (Gold, Oil)
+        "BTC-USD"                  # Crypto
+    ]
+    for sym in global_tickers:
         try:
             news = yf_ribbon.Ticker(sym).news or []
-            for n in news[:4]:
+            # Take only top 2 from each to ensure diversity across the ribbon
+            for n in news[:2]:
                 title = n.get('content', {}).get('title', '') or n.get('title', '')
+                # Handle deeply nested yfinance news structure
+                link = n.get('link')
+                if not link and 'content' in n:
+                    link = n['content'].get('canonicalUrl', {}).get('url')
+                if not link:
+                    link = "#"
+                
                 if title and title not in seen:
                     seen.add(title)
-                    items.append(f'<span class="news-item">📰 {title}</span>')
+                    items.append(f'<span class="news-item">📰 <a href="{link}" target="_blank" style="color: inherit; text-decoration: none;">{title}</a></span>')
         except Exception: pass
     return items
 
-def render_ribbon_html(items, bg_color, speed="40s", ribbon_id="ribbon"):
+def render_ribbon_html(items, bg_color, ribbon_id="ribbon"):
     if not items: return ""
     track = "".join(items * 2)
-    return f"""
-<style>
-.ribbon-wrap-{ribbon_id} {{
-    overflow: hidden;
-    background: {bg_color};
-    padding: 6px 12px;
-    border-radius: 6px;
-    margin-bottom: 6px;
-    white-space: nowrap;
-    position: relative;
-}}
-.ribbon-track-{ribbon_id} {{
-    display: inline-block;
-    white-space: nowrap;
-    animation: ticker-{ribbon_id} {speed} linear infinite;
-    font-size: 0.82rem;
-    color: #f3f4f6;
-}}
-@keyframes ticker-{ribbon_id} {{
-    0%   {{ transform: translateX(0); }}
-    100% {{ transform: translateX(-50%); }}
-}}
-.idx-item  {{ margin-right: 48px; }}
-.news-item {{ margin-right: 60px; }}
-</style>
-<div class="ribbon-wrap-{ribbon_id}">
-  <div class="ribbon-track-{ribbon_id}">{track}</div>
-</div>
-"""
+    # Return JUST the container; CSS will be consolidated at the end
+    return f'<div class="ribbon-wrap-{ribbon_id}"><div class="ribbon-track-{ribbon_id}">{track}</div></div>'
 
 with st.spinner("Loading market data..."):
     index_items = get_index_ribbon_html()
     news_items  = get_news_ribbon_html()
 
-idx_html = render_ribbon_html(index_items, bg_color="#111827", speed="60s", ribbon_id="idx")
-news_html = render_ribbon_html(news_items, bg_color="#374151", speed="120s", ribbon_id="news")
+idx_html = render_ribbon_html(index_items, bg_color="#111827", ribbon_id="idx")
+news_html = render_ribbon_html(news_items, bg_color="#374151", ribbon_id="news")
 
+# Consolidate all Header CSS and HTML into one clean block to prevent rendering bugs
 sticky_header_html = f"""
-<div class="header-sticky-wrapper">
-    {header_title_html}
-    {idx_html}
-    {news_html}
-</div>
 <style>
-    div[data-testid="stVerticalBlock"] > div:has(.header-sticky-wrapper) {{
-        position: sticky;
-        top: 2.875rem;
-        z-index: 999;
-        background: white;
-        padding-bottom: 2px;
-        margin-top: -1.5rem;
-    }}
+    /* 1. Global Header Wrapper */
     .header-sticky-wrapper {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        pointer-events: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Center horizontally */
+        padding-top: 4px;
+        padding-bottom: 2px;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }}
+    
+    /* 2. Centered Title Section */
+    .ultra-compact-title {{
+        text-align: center;
+        margin-bottom: 4px;
+        padding: 0 4rem; /* Space for sidebar and guest badge */
+    }}
+    .title-text {{
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #111827;
+        display: block;
+    }}
+    .desc-text-hide {{ display: none; }}
+    
+    /* 3. Ribbons Stacked Vertically */
+    .ribbons-container {{
         width: 100%;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0 12px;
+    }}
+    .ribbons-container > div {{
+        width: 100%;
+        height: 18px;
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+    }}
+    
+    .ribbon-track-idx, .ribbon-track-news {{
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        font-size: 0.68rem;
+        color: #f3f4f6;
+        height: 100%;
+        width: fit-content; /* Ensure track spans content */
+    }}
+    .ribbon-track-idx {{ animation: ticker-idx 20s linear infinite; background: #111827; }}
+    .ribbon-track-news {{ animation: ticker-news 120s linear infinite; background: #374151; }}
+    
+    @keyframes ticker-idx {{ 
+        0% {{ transform: translateX(0); }} 
+        100% {{ transform: translateX(-50%); }} 
+    }}
+    @keyframes ticker-news {{ 
+        0% {{ transform: translateX(0); }} 
+        100% {{ transform: translateX(-50%); }} 
+    }}
+    
+    .idx-item {{ margin-right: 40px; }}
+    .news-item {{ margin-right: 50px; }}
+    .news-item a:hover {{ text-decoration: underline !important; color: #FF0000 !important; }}
+
+    /* 5. Cleanup Native Header and Sidebar Gaps - AGGRESSIVE */
+    header[data-testid="stHeader"] {{
+        display: none !important;
+    }}
+    
+    /* Remove sidebar top padding and header gap */
+    [data-testid="stSidebarHeader"] {{
+        display: none !important;
+    }}
+    [data-testid="stSidebarContent"] {{
+        padding-top: 0 !important;
+    }}
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child {{
+        margin-top: -3.5rem !important;
+    }}
+    
+    /* Reclaim main content page space */
+    div.stMainBlockContainer {{
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }}
+    
+    /* Offset main content — Header ribbons occupy ~40-50px */
+    div[data-testid="stVerticalBlock"] > div:first-child {{
+        margin-top: 40px; 
     }}
 </style>
+
+<div class="header-sticky-wrapper">
+    <div class="ultra-compact-title">
+        <span class="title-text">📈 TradeFox: AI Paper Money Trading Academy!</span>
+    </div>
+    <div class="ribbons-container">
+        {idx_html}
+        {news_html}
+    </div>
+</div>
+
+<!-- Permanent Initial-Load Scroll Anchor to top for first 3 seconds -->
+<script>
+    const anchorTop = () => {{
+        const app = window.parent.document.querySelector('.stApp');
+        const main = window.parent.document.querySelector('section.main');
+        if (app) app.scrollTop = 0;
+        if (main) main.scrollTop = 0;
+        window.scrollTo(0, 0);
+    }};
+    
+    // Heartbeat every 30ms for 3 seconds to ensure stable entry
+    anchorTop();
+    const anchorInterval = setInterval(anchorTop, 30);
+    setTimeout(() => clearInterval(anchorInterval), 3000);
+</script>
 """
 st.markdown(sticky_header_html, unsafe_allow_html=True)
 
@@ -262,10 +423,10 @@ with st.sidebar:
     st.markdown("### 🏠 Navigation")
     page_options = [
         "🎓 Education",
-        "1️⃣ Stock Screener",
-        "2️⃣ Single Stock Analyst",
-        "3️⃣ Macro Portfolio Analyst",
-        "4️⃣ Paper Trader"
+        "📊 Stock Screener",
+        "🔍 Single Stock Analyst",
+        "🌐 Macro Portfolio Analyst",
+        "💰 Paper Money Trading"
     ]
     
     current_idx = page_options.index(st.session_state.active_page) if st.session_state.active_page in page_options else 0
@@ -286,16 +447,16 @@ with st.sidebar:
 2. 📊 Screen the market for opportunities
 3. 🔍 Deep-dive any stock with **AI Analyst**
 4. 🌐 Evaluate macro risks for your portfolio
-5. 💰 Practice risk-free with **Paper Trader**
+5. 💰 Practice risk-free with **Paper Money Trading**
 6. 🤖 **Ask Finley** in any tab for help!
     """)
     st.markdown("---")
     for sec_name, sec_icon, sec_desc in [
         ("🎓 Education", "🎓", "Interactive stock market school for all levels."),
-        ("1️⃣ Stock Screener", "📊", "Scan global markets for undervalued stocks."),
-        ("2️⃣ Single Stock Analyst", "🔍", "AI-powered deep-dive on any stock ticker."),
-        ("3️⃣ Macro Portfolio Analyst", "🌐", "Personalized macro risk analysis for your holdings."),
-        ("4️⃣ Paper Trader", "💰", "Simulated trading with virtual cash.")
+        ("📊 Stock Screener", "📊", "Scan global markets for undervalued stocks."),
+        ("🔍 Single Stock Analyst", "🔍", "AI-powered deep-dive on any stock ticker."),
+        ("🌐 Macro Portfolio Analyst", "🌐", "Personalized macro risk analysis for your holdings."),
+        ("💰 Paper Money Trading", "💰", "Simulated trading with virtual cash.")
     ]:
         with st.expander(f"{sec_icon} {sec_name}"):
             st.markdown(sec_desc)
@@ -324,8 +485,8 @@ if active_page == "🎓 Education":
     render_education()
     render_chat(groq_api_key, tab_context="education")
 
-elif active_page == "1️⃣ Stock Screener":
-    st.header("1️⃣ Market Screener")
+elif active_page == "📊 Stock Screener":
+    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>📊 Market Screener</h3>", unsafe_allow_html=True)
     st.markdown("Scan the market for potentially undervalued, overvalued, or equal valued stocks.")
     
     col1a, col1b, col1c, col1d = st.columns(4)
@@ -387,7 +548,7 @@ elif active_page == "1️⃣ Stock Screener":
                     st.session_state['paper_trade_ticker'] = sel_ticker
                     st.session_state['paper_trade_notes'] = "Found via Screener"
                     st.session_state['show_order_ticket'] = True
-                    st.success(f"Ready! Switch to '4️⃣ Paper Trader' tab.")
+                    st.success(f"Ready! Switch to '💰 Paper Trader' tab.")
             
             pcol1, pcol2, pcol3 = st.columns([1, 2, 1])
             if pcol1.button("◀ Prev", disabled=(page == 0)):
@@ -400,8 +561,8 @@ elif active_page == "1️⃣ Stock Screener":
 
     render_chat(groq_api_key, tab_context="screener")
 
-elif active_page == "2️⃣ Single Stock Analyst":
-    st.header("2️⃣ Single Stock Analyst")
+elif active_page == "🔍 Single Stock Analyst":
+    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>🔍 Single Stock Analyst</h3>", unsafe_allow_html=True)
     st.markdown("Deep dive into stock financials and AI-powered analysis.")
     ticker_input = st.text_input("Enter Ticker (e.g., AAPL)").upper()
     
@@ -444,8 +605,8 @@ elif active_page == "2️⃣ Single Stock Analyst":
 
     render_chat(groq_api_key, tab_context="analyst")
 
-elif active_page == "3️⃣ Macro Portfolio Analyst":
-    st.header("3️⃣ Macro Portfolio Analyst")
+elif active_page == "🌐 Macro Portfolio Analyst":
+    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>🌐 Macro Portfolio Analyst</h3>", unsafe_allow_html=True)
     st.markdown("Analyze your holdings against Fed policy and global trends.")
     
     uploaded_file = st.file_uploader("📥 Optional: Upload Positions (CSV)", type=["csv"])
@@ -487,7 +648,8 @@ elif active_page == "3️⃣ Macro Portfolio Analyst":
 
     render_chat(groq_api_key, tab_context="macro")
 
-elif active_page == "4️⃣ Paper Trader":
+elif active_page == "💰 Paper Money Trading":
+    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>💰 Paper Money Trading</h3>", unsafe_allow_html=True)
     if is_guest:
         st.warning("⚠️ **Guest Mode**")
         st.markdown("Create an account to save portfolio data.")

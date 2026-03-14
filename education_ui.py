@@ -2,19 +2,8 @@ import streamlit as st
 
 # ── YouTube video helper ──────────────────────────────────────────────────────
 def _yt(video_id: str, caption: str = ""):
-    """Embed a YouTube video responsively using an iframe."""
-    st.markdown(
-        f"""
-<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;
-            border-radius:12px;margin:12px 0 4px 0;box-shadow:0 4px 16px rgba(0,0,0,0.12);">
-  <iframe src="https://www.youtube.com/embed/{video_id}?rel=0&modestbranding=1"
-    style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
-    allowfullscreen loading="lazy">
-  </iframe>
-</div>
-        """,
-        unsafe_allow_html=True,
-    )
+    """Embed a YouTube video using st.video for better reliability and responsiveness."""
+    st.video(f"https://www.youtube.com/watch?v={video_id}")
     if caption:
         st.caption(f"📺 {caption}")
 
@@ -47,7 +36,7 @@ def _examples(simple: str, medium: str, complex_: str):
 # Main render function
 # ══════════════════════════════════════════════════════════════════════════════
 def render_education():
-    st.header("📚 Stock Market Education Center")
+    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>📚 Stock Market Education Center</h3>", unsafe_allow_html=True)
     st.markdown(
         "Your beginner-friendly guide to understanding the stock market. "
         "Each section has a **video**, **real-world examples** (simple → complex), "
@@ -304,6 +293,51 @@ Always compare against the **S&P 500**. If the S&P gained 20% and you gained 12%
             "A quant fund wins only 45% of trades, but averages a $3,000 gain per winner and only $1,000 loss per loser. Profit Factor = (0.45 × $3,000) ÷ (0.55 × $1,000) = 2.45 — hugely profitable despite losing more often than winning! Risk/reward ratio beats win rate. 🧮",
         )
 
+    # ── 9. Time Value of Money ────────────────────────────────────────────────
+    with st.expander("⏳ 9. Time Value of Money"):
+        _yt("N-lN5xORIwc", "Time Value of Money Explained")
+        st.markdown("""
+### Why a Dollar Today is worth more than a Dollar Tomorrow
+The **Time Value of Money (TVM)** is the concept that money available now is worth more than the same amount in the future due to its potential earning capacity.
+
+#### The Three Killers of Future Value:
+1.  **Inflation 💸**: Prices go up, so $100 buys fewer groceries next year than it does today.
+2.  **Opportunity Cost 🕒**: If you have the money now, you can invest it to earn interest.
+3.  **Risk 🎲**: There is no guarantee you will actually receive the money in the future.
+
+#### Key Formula: Future Value (FV)
+$$FV = PV \times (1 + r)^n$$
+*(Where PV is Present Value, r is interest rate, and n is number of years)*
+        """)
+        _examples(
+            "Someone offers you $100 today or $100 in one year. You take it today because you can buy something now or put it in a savings account to have $105 next year! 🏦",
+            "A company is deciding whether to spend $1M on a new factory today. If that $1M could earn 7% in the bank, the factory MUST earn more than 7% to be worth the 'Time Value' of that money. 🏭",
+            "A lottery winner chooses between a $500M lump sum today or $20M per year for 30 years ($600M total). Due to the Time Value of Money and the ability to invest the lump sum immediately, the $500M today is mathematically much more valuable than the total $600M paid over decades. 🎟️",
+        )
+
+    # ── 10. Power of Compounding ──────────────────────────────────────────────
+    with st.expander("🌱 10. Power of Compounding"):
+        _yt("AmFMJC45f1Q", "The Magic of Exponential Growth (Compounding)")
+        st.markdown("""
+### The Snowball Effect
+**Compounding** is the process where the value of an investment increases because the earnings on an investment, both capital gains and interest, earn interest as time passes.
+
+#### The Three Pillars of Wealth:
+- **Amount 💰**: How much you start with.
+- **Rate ⚡**: Your annual return percentage.
+- **Time ⏳**: The most powerful factor! Starting 10 years earlier can result in double or triple the final wealth.
+
+#### The Rule of 72
+To find how many years it takes to **double** your money, divide 72 by your interest rate:
+- At **6%**, your money doubles every **12 years**.
+- At **10%**, your money doubles every **7.2 years**.
+        """)
+        _examples(
+            "You save $1 a day starting at age 20. By age 65, thanks to compounding at 8%, you'd have nearly $150,000! Small habits + long time = Big results. 🌱",
+            "Two friends invest $10,000. Friend A reinvests their 10% annual dividends. Friend B spends them. After 30 years, Friend A has $174,000 while Friend B still only has their original $10,000. Reinvesting creates the compounding 'engine'. 🔄",
+            "The 'Penny Doubling' Riddle: Would you rather have $1 Million today or a penny that doubles every day for 30 days? On day 30, the doubling penny is worth over **$5.3 Million**. This demonstrates how exponential growth (compounding) back-loads almost all its gains into the final stage of the journey. 🎢",
+        )
+
     # ══════════════════════════════════════════════════════════════════════════
     # AI Tutor Chatbot
     # ══════════════════════════════════════════════════════════════════════════
@@ -327,11 +361,11 @@ Always compare against the **S&P 500**. If the S&P gained 20% and you gained 12%
             "```\nGROQ_API_KEY = \"your-key-here\"\n```\n\n"
             "Get a **free key** (no credit card) at 👉 [console.groq.com](https://console.groq.com) in under 1 minute!"
         )
-        # Still render a limited chatbot with canned Q&A when no key is present
-        _render_basic_chatbot()
         return
 
-    _render_ai_chatbot(groq_key)
+    # Chatbot is intentionally NOT rendered here anymore to avoid redundant UI 
+    # and "scroll to bottom" focus issues. The global chatbot in app.py 
+    # handles all interactions.
 
 
 # ── Suggested question chips helper ──────────────────────────────────────────
