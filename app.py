@@ -271,8 +271,21 @@ st.markdown(sticky_header_html, unsafe_allow_html=True)
 # Groq API key from secrets for AI agents
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
 
+# ── Navigation Reset Logic ──────────────────────────────────────────────────
+if 'main_tab_key' not in st.session_state:
+    st.session_state.main_tab_key = 0
+
+def reset_to_home():
+    """Forces the main tabs to reset to the first tab (Education)."""
+    st.session_state.main_tab_key += 1
+
 # Sidebar with How it works + Tab descriptions
 with st.sidebar:
+    st.markdown("### 🏠 Navigation")
+    if st.button("🏠 Back to Home (Education)", on_click=reset_to_home, use_container_width=True):
+        pass # The on_click callback handles the reset
+    
+    st.markdown("---")
     st.markdown("### ℹ️ How it works")
     st.markdown("""
 1. 🎓 Learn the basics in **Education**
@@ -324,13 +337,14 @@ Supabase so your portfolio persists across sessions.
     st.caption("🤖 AI powered by Llama 3.3 via Groq")
 
 # Layout using Tabs for better organization
+# We use a dynamic key based on main_tab_key to allow programmatic resets
 tab0, tab1, tab2, tab3, tab4 = st.tabs([
     "🎓 Education",
     "1️⃣ Stock Screener",
     "2️⃣ Single Stock Analyst",
     "3️⃣ Macro Portfolio Analyst",
     "4️⃣ Paper Trader"
-])
+], key=f"main_nav_tabs_{st.session_state.main_tab_key}")
 
 # ── Sticky Tabs via CSS ─────────────────────────────────────────────────────
 # `position: sticky` is broken by Streamlit's CSS `contain: content` on parent
@@ -348,13 +362,14 @@ st.markdown("""
         top: 0px !important;
         left: 2.8rem !important;
         right: 0 !important;
-        z-index: 1001 !important;
+        z-index: 99999 !important; /* Extremely high to stay above sidebar/modals if needed */
         background: white !important;
         padding: 6px 0.5rem 2px 0.5rem !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15) !important;
         border-bottom: 2px solid #f3f4f6 !important;
         display: flex !important;
         gap: 0 !important;
+        pointer-events: auto !important; /* Ensure clicks always pass through */
     }
 
     /* Ensure ONLY the top-level tab buttons are compact */
@@ -697,7 +712,15 @@ with tab4:
     if st.session_state.get("user_id") == "guest_user":
         st.warning("⚠️ **Guest Mode**")
         st.markdown("Paper Trading requires an account to securely save and track your portfolio data. Please Sign Out and create a free account to use this feature.")
+        if st.button("🏠 Back to Education / Home", key="guest_home_nav", type="primary"):
+            reset_to_home()
+            st.rerun()
     else:
+        # Also add a home button at the top of paper trader for easy exit
+        if st.button("⬅️ Back to Home / Education", key="pt_home_nav"):
+            reset_to_home()
+            st.rerun()
+        st.markdown("---")
         render_paper_trader(portfolio)
         render_chat(groq_api_key, tab_context="paper_trader")
 
