@@ -13,8 +13,42 @@ st.set_page_config(
     page_title="TradeFox: AI Paper Money Trading Academy!",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="auto"
+    initial_sidebar_state="expanded"
 )
+
+# ── Sidebar Polish: Always show at least a header to force 'expanded' state ──
+# We do this as early as possible after set_page_config
+with st.sidebar:
+    st.markdown("<div style='padding-top:10px;'></div>", unsafe_allow_html=True)
+    if not is_authenticated():
+        st.markdown("### 🏠 Welcome to TradeFox")
+        st.info("Sign In or Continue as Guest to begin.")
+
+# ── Force Expand Script (Aggressive fallback) ────────────────────────────────
+st.markdown("""
+<script>
+    (function() {
+        const pdoc = window.parent.document;
+        const forceExpand = () => {
+            const sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
+            if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
+                const expandBtn = pdoc.querySelector('[data-testid="stSidebarCollapsedControl"]') || 
+                                  pdoc.querySelector('button[aria-label="Expand sidebar"]');
+                if (expandBtn) {
+                    expandBtn.click();
+                    // Also dispatch native event to be sure
+                    expandBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    return true;
+                }
+            }
+            return false;
+        };
+        // Run repeatedly for 5s to override internal Streamlit state
+        const expandInterval = setInterval(forceExpand, 500);
+        setTimeout(() => clearInterval(expandInterval), 5000);
+    })();
+</script>
+""", unsafe_allow_html=True)
 
 # Custom CSS — White / Red / Black / Grey palette
 st.markdown("""
@@ -354,45 +388,115 @@ sticky_header_html = f"""
     .news-item {{ margin-right: 50px; }}
     .news-item a:hover {{ text-decoration: underline !important; color: #FF0000 !important; }}
 
-    /* 5. Hide native header & sidebar controls — we use a custom toggle */
-    header[data-testid="stHeader"] {{
-        display: none !important;
-    }}
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"],
-    [data-testid="stSidebarHeader"] {{
-        display: none !important;
-    }}
-    [data-testid="stSidebarContent"] {{
-        padding-top: 10px !important;
-    }}
+    /* 5. Reposition and Style Native Sidebar Controls to Middle-Left Edge */
     
-    /* 6. Custom sidebar toggle — vertically centered on sidebar edge */
-    .custom-sidebar-toggle {{
-        position: fixed;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 99999;
-        background: #ffffff;
-        border: 1px solid #d1d5db;
-        border-radius: 0 8px 8px 0;
-        width: 24px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.12);
-        font-size: 14px;
-        font-weight: 800;
-        color: #6b7280;
-        transition: all 0.2s ease;
-        user-select: none;
+    /* Expand Button (when collapsed) */
+    [data-testid="stSidebarCollapsedControl"] {{
+        position: fixed !important;
+        top: 50% !important;
+        left: 0 !important;
+        transform: translateY(-50%) !important;
+        z-index: 10000005 !important; /* Higher than stHeader (10000001) */
+        display: flex !important;
+        visibility: visible !important;
+        background: white !important;
+        border: 1.5px solid #d1d5db !important;
+        border-radius: 0 10px 10px 0 !important;
+        width: 32px !important;
+        height: 56px !important;
+        box-shadow: 4px 0 12px rgba(0,0,0,0.18) !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
     }}
-    .custom-sidebar-toggle:hover {{
-        background: #FF0000;
-        color: #ffffff;
-        box-shadow: 2px 2px 12px rgba(255,0,0,0.3);
+    [data-testid="stSidebarCollapsedControl"]:hover {{
+        background: #FF0000 !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"] button {{
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #374151 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"]:hover button {{
+        color: white !important;
+    }}
+    /* Replace SVG with Arrow Icon */
+    [data-testid="stSidebarCollapsedControl"] svg {{
+        display: none !important;
+    }}
+    [data-testid="stSidebarCollapsedControl"] button::after {{
+        content: "»" !important;
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+    }}
+
+    /* Collapse Button (when expanded) */
+    [data-testid="stSidebarCollapseButton"] {{
+        position: absolute !important;
+        top: 50% !important;
+        right: -16px !important;
+        transform: translateY(-50%) !important;
+        z-index: 10000000 !important;
+        display: flex !important;
+        visibility: visible !important;
+        background: white !important;
+        border: 1.5px solid #d1d5db !important;
+        border-radius: 50% !important;
+        width: 32px !important;
+        height: 32px !important;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
+    }}
+    [data-testid="stSidebarCollapseButton"]:hover {{
+        background: #FF0000 !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button {{
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #374151 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }}
+    [data-testid="stSidebarCollapseButton"]:hover button {{
+        color: white !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] svg {{
+        display: none !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button::after {{
+        content: "«" !important;
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+    }}
+
+    /* Global Visibility and Layering Fixes */
+    [data-testid="stSidebarHeader"] {{
+        background: transparent !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }}
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        pointer-events: none !important; 
+        z-index: 10000001 !important; /* Higher than Ribbons (999999) */
+    }}
+    header[data-testid="stHeader"] button {{
+        pointer-events: auto !important;
     }}
     
     /* ── Main Content Area ─────────────────────────── */
@@ -403,8 +507,6 @@ sticky_header_html = f"""
         padding-right: 1rem !important;
         max-width: 100% !important;
     }}
-    
-    /* Native header already handled above — keep transparent */
     
     /* Offset main content — Header ribbons occupy ~40-50px */
     div[data-testid="stVerticalBlock"] > div:first-child {{
@@ -438,79 +540,6 @@ sticky_header_html = f"""
 </script>
 """
 st.markdown(sticky_header_html, unsafe_allow_html=True)
-
-# ── Custom Sidebar Toggle (injected via component to bypass iframe sandbox) ───
-import streamlit.components.v1 as components
-components.html("""
-<script>
-(function() {
-    var pdoc = window.parent.document;
-
-    // Remove any duplicate from previous reruns
-    var existing = pdoc.getElementById('tfSidebarToggle');
-    if (existing) existing.remove();
-
-    var btn = pdoc.createElement('div');
-    btn.id = 'tfSidebarToggle';
-    btn.title = 'Toggle sidebar (click)';
-    btn.style.cssText =
-        'position:fixed;' +
-        'top:50%;' +
-        'transform:translateY(-50%);' +
-        'left:0px;' +
-        'z-index:2147483647;' +
-        'background:#ffffff;' +
-        'border:1.5px solid #d1d5db;' +
-        'border-left:none;' +
-        'border-radius:0 10px 10px 0;' +
-        'width:22px;' +
-        'height:52px;' +
-        'display:flex;' +
-        'align-items:center;' +
-        'justify-content:center;' +
-        'cursor:pointer;' +
-        'box-shadow:3px 0 10px rgba(0,0,0,0.15);' +
-        'font-size:13px;' +
-        'font-weight:900;' +
-        'color:#374151;' +
-        'transition:background 0.2s,color 0.2s;' +
-        'user-select:none;';
-    btn.innerHTML = '&laquo;';
-
-    btn.onmouseenter = function() { btn.style.background='#FF0000'; btn.style.color='#fff'; };
-    btn.onmouseleave = function() { btn.style.background='#ffffff'; btn.style.color='#374151'; };
-
-    btn.onclick = function() {
-        var sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
-        var isOpen = sidebar && sidebar.getAttribute('aria-expanded') !== 'false';
-        // Click the appropriate native button
-        var nativeBtn = isOpen
-            ? pdoc.querySelector('[data-testid="stSidebarCollapseButton"] button')
-            : (pdoc.querySelector('[data-testid="stSidebarCollapsedControl"] button') ||
-               pdoc.querySelector('[data-testid="collapsedControl"] button'));
-        if (nativeBtn) nativeBtn.click();
-    };
-
-    pdoc.body.appendChild(btn);
-
-    // Sync position and icon every 250ms
-    setInterval(function() {
-        var sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
-        var toggle = pdoc.getElementById('tfSidebarToggle');
-        if (!toggle || !sidebar) return;
-        var isOpen = sidebar.getAttribute('aria-expanded') !== 'false';
-        if (isOpen) {
-            var w = sidebar.getBoundingClientRect().width;
-            toggle.style.left = (Math.max(0, w - 1)) + 'px';
-            toggle.innerHTML = '&laquo;';
-        } else {
-            toggle.style.left = '0px';
-            toggle.innerHTML = '&raquo;';
-        }
-    }, 250);
-})();
-</script>
-""", height=0)
 
 # ── Navigation Logic ────────────────────────────────────────────────────────
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
