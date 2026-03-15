@@ -15,17 +15,91 @@ def render_auth_page():
     """
     supabase = get_supabase()
 
-    st.markdown("""
-    <div style="max-width:500px; margin:60px auto 0 auto;">
-        <div style="text-align:center; margin-bottom:32px;">
-            <h1 style="color:#111827; font-size:2.2em; margin:0; line-height: 1.2;">📈 TradeFox:<br>AI Paper Money Trading Academy!</h1>
-            <p style="color:#6b7280; margin-top:8px;">Powered by Agentic AI Simulated trading</p>
-        </div>
-    </div>
+    import base64
+    import os
+
+    # Load and encode the background image
+    bg_img_path = os.path.join("assets", "login_bg.png")
+    if os.path.exists(bg_img_path):
+        with open(bg_img_path, "rb") as f:
+            data = f.read()
+            encoded_img = base64.b64encode(data).decode()
+    else:
+        encoded_img = ""
+
+    st.markdown(f"""
+    <style>
+    /* Apply background to the absolute main container */
+    [data-testid="stAppViewContainer"] {{
+        background: url("data:image/png;base64,{encoded_img}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+    }}
+    
+    /* Ensure the header and other parts don't block the background */
+    [data-testid="stHeader"], [data-testid="stToolbar"] {{
+        background: rgba(0,0,0,0) !important;
+    }}
+
+    .auth-container {{
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        padding: 40px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4);
+        width: 100%;
+        margin: 40px 0;
+        color: white;
+        text-align: center;
+    }}
+    
+    h1, h2, p {{
+        color: white !important;
+        text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+        font-family: 'Inter', sans-serif;
+    }}
+
+    /* Tab styling for Dark/Transparent background */
+    .stTabs [data-baseweb="tab-list"] {{
+        background-color: transparent !important;
+        gap: 10px;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color: rgba(255,255,255,0.7) !important;
+        background-color: rgba(255,255,255,0.05) !important;
+        border-radius: 8px 8px 0 0 !important;
+        padding: 10px 20px !important;
+    }}
+    .stTabs [aria-selected="true"] {{
+        color: white !important;
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-bottom: 3px solid #FF0000 !important;
+    }}
+    
+    /* Input fields visibility */
+    .stTextInput input {{
+        background-color: rgba(255,255,255,0.9) !important;
+        color: black !important;
+    }}
+    </style>
     """, unsafe_allow_html=True)
 
-    col_l, col_c, col_r = st.columns([1, 2, 1])
-    with col_c:
+    col1, col2 = st.columns([3, 2])
+    with col2:
+        st.markdown("""
+        <div class="auth-container">
+            <div style="margin-bottom:20px;">
+                <h1 style="font-size:2.2em; margin:0; line-height: 1.1;">📈 Trade Fox</h1>
+                <h2 style="color:white; font-size:1.3em; opacity:0.9;">AI Financial Academy</h2>
+                <p style="margin-top:12px; font-weight: 500; font-size:1.05em;">Empowering the next generation of investor</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
         tab_in, tab_up, tab_guest = st.tabs(["🔑 Sign In", "📝 Sign Up", "🕵️ Guest"])
 
         # ── Sign In ─────────────────────────────────────────────────────────

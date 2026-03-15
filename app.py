@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="TradeFox: AI Paper Money Trading Academy!",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="auto"
 )
 
 # Custom CSS — White / Red / Black / Grey palette
@@ -354,31 +354,61 @@ sticky_header_html = f"""
     .news-item {{ margin-right: 50px; }}
     .news-item a:hover {{ text-decoration: underline !important; color: #FF0000 !important; }}
 
-    /* 5. Cleanup Native Header and Sidebar Gaps - AGGRESSIVE */
+    /* 5. Hide native header & sidebar controls — we use a custom toggle */
     header[data-testid="stHeader"] {{
         display: none !important;
     }}
-    
-    /* Remove sidebar top padding and header gap */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"],
     [data-testid="stSidebarHeader"] {{
         display: none !important;
     }}
     [data-testid="stSidebarContent"] {{
-        padding-top: 0 !important;
-    }}
-    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child {{
-        margin-top: -3.5rem !important;
+        padding-top: 10px !important;
     }}
     
-    /* Reclaim main content page space */
-    div.stMainBlockContainer {{
-        padding-top: 0 !important;
-        margin-top: 0 !important;
+    /* 6. Custom sidebar toggle — vertically centered on sidebar edge */
+    .custom-sidebar-toggle {{
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 99999;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0 8px 8px 0;
+        width: 24px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.12);
+        font-size: 14px;
+        font-weight: 800;
+        color: #6b7280;
+        transition: all 0.2s ease;
+        user-select: none;
     }}
+    .custom-sidebar-toggle:hover {{
+        background: #FF0000;
+        color: #ffffff;
+        box-shadow: 2px 2px 12px rgba(255,0,0,0.3);
+    }}
+    
+    /* ── Main Content Area ─────────────────────────── */
+    .block-container {{
+        padding-top: 0.1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }}
+    
+    /* Native header already handled above — keep transparent */
     
     /* Offset main content — Header ribbons occupy ~40-50px */
     div[data-testid="stVerticalBlock"] > div:first-child {{
-        margin-top: 40px; 
+        margin-top: 0px !important; 
     }}
 </style>
 
@@ -392,23 +422,95 @@ sticky_header_html = f"""
     </div>
 </div>
 
-<!-- Permanent Initial-Load Scroll Anchor to top for first 3 seconds -->
 <script>
+    // Scroll anchor — keep page at top on first load
     const anchorTop = () => {{
-        const app = window.parent.document.querySelector('.stApp');
-        const main = window.parent.document.querySelector('section.main');
-        if (app) app.scrollTop = 0;
-        if (main) main.scrollTop = 0;
-        window.scrollTo(0, 0);
+        try {{
+            const app = window.parent.document.querySelector('.stApp');
+            const main = window.parent.document.querySelector('section.main');
+            if (app) app.scrollTop = 0;
+            if (main) main.scrollTop = 0;
+        }} catch(e) {{}}
     }};
-    
-    // Heartbeat every 30ms for 3 seconds to ensure stable entry
     anchorTop();
     const anchorInterval = setInterval(anchorTop, 30);
     setTimeout(() => clearInterval(anchorInterval), 3000);
 </script>
 """
 st.markdown(sticky_header_html, unsafe_allow_html=True)
+
+# ── Custom Sidebar Toggle (injected via component to bypass iframe sandbox) ───
+import streamlit.components.v1 as components
+components.html("""
+<script>
+(function() {
+    var pdoc = window.parent.document;
+
+    // Remove any duplicate from previous reruns
+    var existing = pdoc.getElementById('tfSidebarToggle');
+    if (existing) existing.remove();
+
+    var btn = pdoc.createElement('div');
+    btn.id = 'tfSidebarToggle';
+    btn.title = 'Toggle sidebar (click)';
+    btn.style.cssText =
+        'position:fixed;' +
+        'top:50%;' +
+        'transform:translateY(-50%);' +
+        'left:0px;' +
+        'z-index:2147483647;' +
+        'background:#ffffff;' +
+        'border:1.5px solid #d1d5db;' +
+        'border-left:none;' +
+        'border-radius:0 10px 10px 0;' +
+        'width:22px;' +
+        'height:52px;' +
+        'display:flex;' +
+        'align-items:center;' +
+        'justify-content:center;' +
+        'cursor:pointer;' +
+        'box-shadow:3px 0 10px rgba(0,0,0,0.15);' +
+        'font-size:13px;' +
+        'font-weight:900;' +
+        'color:#374151;' +
+        'transition:background 0.2s,color 0.2s;' +
+        'user-select:none;';
+    btn.innerHTML = '&laquo;';
+
+    btn.onmouseenter = function() { btn.style.background='#FF0000'; btn.style.color='#fff'; };
+    btn.onmouseleave = function() { btn.style.background='#ffffff'; btn.style.color='#374151'; };
+
+    btn.onclick = function() {
+        var sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
+        var isOpen = sidebar && sidebar.getAttribute('aria-expanded') !== 'false';
+        // Click the appropriate native button
+        var nativeBtn = isOpen
+            ? pdoc.querySelector('[data-testid="stSidebarCollapseButton"] button')
+            : (pdoc.querySelector('[data-testid="stSidebarCollapsedControl"] button') ||
+               pdoc.querySelector('[data-testid="collapsedControl"] button'));
+        if (nativeBtn) nativeBtn.click();
+    };
+
+    pdoc.body.appendChild(btn);
+
+    // Sync position and icon every 250ms
+    setInterval(function() {
+        var sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
+        var toggle = pdoc.getElementById('tfSidebarToggle');
+        if (!toggle || !sidebar) return;
+        var isOpen = sidebar.getAttribute('aria-expanded') !== 'false';
+        if (isOpen) {
+            var w = sidebar.getBoundingClientRect().width;
+            toggle.style.left = (Math.max(0, w - 1)) + 'px';
+            toggle.innerHTML = '&laquo;';
+        } else {
+            toggle.style.left = '0px';
+            toggle.innerHTML = '&raquo;';
+        }
+    }, 250);
+})();
+</script>
+""", height=0)
 
 # ── Navigation Logic ────────────────────────────────────────────────────────
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
@@ -649,17 +751,10 @@ elif active_page == "🌐 Macro Portfolio Analyst":
     render_chat(groq_api_key, tab_context="macro")
 
 elif active_page == "💰 Paper Money Trading":
-    st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>💰 Paper Money Trading</h3>", unsafe_allow_html=True)
     if is_guest:
+        st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>💰 Paper Money Trading</h3>", unsafe_allow_html=True)
         st.warning("⚠️ **Guest Mode**")
         st.markdown("Create an account to save portfolio data.")
-        if st.button("🏠 Back to Home"):
-            set_page("🎓 Education")
-            st.rerun()
     else:
-        if st.button("⬅️ Back to Home"):
-            set_page("🎓 Education")
-            st.rerun()
-        st.markdown("---")
         render_paper_trader(portfolio)
         render_chat(groq_api_key, tab_context="paper_trader")
