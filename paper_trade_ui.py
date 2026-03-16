@@ -219,7 +219,7 @@ def render_quote_panel():
              if cp > 0:
                  # Try to get the name safely
                  name = q_ticker
-                  try:
+                 try:
                      from yahooquery import Ticker as YQTicker
                      yt = YQTicker(q_ticker)
                      name_data = yt.quote_type.get(q_ticker, {})

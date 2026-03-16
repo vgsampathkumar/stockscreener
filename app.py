@@ -593,6 +593,7 @@ with st.sidebar:
             st.markdown(sec_desc)
     st.markdown("---")
     st.caption("🤖 AI powered by Llama 3.3 via Groq")
+    st.caption("🚀 Build v1.1.0 - March 16, 11:30 AM ET")
 
 # ── Portfolio Engine Setup ────────────────────────────────────────────────
 user_id = st.session_state.get("user_id")
