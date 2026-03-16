@@ -10,61 +10,67 @@ from portfolio_engine import PaperPortfolio
 
 @st.cache_data(ttl=5) # Real-time-ish for trades
 def get_price_robust(ticker: str) -> float:
-    """Resilient one-off price fetcher for cloud environments."""
+    """Resilient one-off price fetcher using YahooQuery (Primary) and yfinance (Fallback)."""
     if not ticker: return 0.0
+    # 1. Try YahooQuery
+    try:
+        from yahooquery import Ticker as YQTicker
+        yt = YQTicker(ticker)
+        price_data = yt.price
+        if ticker in price_data and isinstance(price_data[ticker], dict):
+            p = price_data[ticker].get('regularMarketPrice')
+            if p and p > 0: return float(p)
+    except: pass
+    
+    # 2. Try yfinance fallbacks
     try:
         t = yf.Ticker(ticker)
-        # 1. fast_info
-        try:
-            if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
-                p = t.fast_info['last_price']
-                if p and p > 0: return float(p)
-        except: pass
-        # 2. info
-        try:
-            info = t.info
-            p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+        if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
+            p = t.fast_info['last_price']
             if p and p > 0: return float(p)
-        except: pass
-        # 3. history
         h = t.history(period="1d")
         if not h.empty:
             return float(h["Close"].iloc[-1])
-        return 0.0
-    except:
-        return 0.0
+    except: pass
+    return 0.0
 
 @st.cache_data(ttl=60)  # Refresh prices at most once per minute
 def fetch_live_prices(tickers: tuple) -> dict:
-    """Batch-fetch prices for a list of tickers in ONE yfinance call."""
+    """Batch-fetch prices for a list of tickers in ONE API call."""
     if not tickers:
         return {}
+    
+    # Try YahooQuery first (Reliable)
+    try:
+        from yahooquery import Ticker as YQTicker
+        yt = YQTicker(list(tickers))
+        pd_data = yt.price
+        res = {}
+        for tick in tickers:
+            p = 0.0
+            if tick in pd_data and isinstance(pd_data[tick], dict):
+                p = pd_data[tick].get('regularMarketPrice', 0.0)
+            if p <= 0: p = get_price_robust(tick)
+            res[tick] = p
+        if any(v > 0 for v in res.values()): return res
+    except: pass
+
+    # yfinance download fallback
     try:
         data = yf.download(list(tickers), period="1d", progress=False, auto_adjust=True)
         prices = {}
-        if len(tickers) == 1:
-            tick = tickers[0]
-            if not data.empty and 'Close' in data.columns:
-                prices[tick] = float(data['Close'].iloc[-1])
-            else:
-                prices[tick] = get_price_robust(tick) # Fallback
-        else:
-            for tick in tickers:
-                try:
-                    p = 0.0
-                    if 'Close' in data.columns:
-                        col = data['Close']
-                        if tick in col.columns:
-                            p = float(col[tick].dropna().iloc[-1])
-                        else:
-                            p = float(col.dropna().iloc[-1]) if not col.empty else 0.0
-                    
-                    if p <= 0: p = get_price_robust(tick)
-                    prices[tick] = p
-                except Exception:
-                    prices[tick] = get_price_robust(tick)
+        for tick in tickers:
+            p = 0.0
+            try:
+                if 'Close' in data.columns:
+                    col = data['Close']
+                    if tick in col.columns: p = float(col[tick].dropna().iloc[-1])
+                    else: p = float(col.dropna().iloc[-1]) if not col.empty else 0.0
+            except: pass
+            if p <= 0: p = get_price_robust(tick)
+            prices[tick] = p
         return prices
-    except Exception:
+    except:
         return {t: get_price_robust(t) for t in tickers}
 
 @st.cache_data(ttl=300)  # Cache market status for 5 minutes
@@ -198,40 +204,40 @@ def render_quote_panel():
              if st.button("Close"):
                   st.session_state['show_quote_modal'] = False
                   st.rerun()
-          if q_ticker:
-             try:
-                 t = yf.Ticker(q_ticker)
-                 cp = get_price_robust(q_ticker)
-                 
-                 # info might still work for name even if inhibited for price
+         if q_ticker:
+             cp = get_price_robust(q_ticker)
+             if cp > 0:
+                 # Try to get the name safely
+                 name = q_ticker
                  try:
-                     name = t.info.get('longName', q_ticker)
-                 except:
-                     name = q_ticker
-
+                     from yahooquery import Ticker as YQTicker
+                     yt = YQTicker(q_ticker)
+                     name = yt.quote_type.get(q_ticker, {}).get('longName', q_ticker)
+                 except: pass
+                 
                  st.markdown(f"**{name} ({q_ticker})** | **${cp:.2f}**")
                  
-                 # The functional Buy/Sell buttons from the requirement
+                 # The functional Buy/Sell buttons
                  qb1, qb2, _ = st.columns([1, 1, 4])
                  with qb1:
                       if st.button("Buy", type="primary", key="qb_buy"):
                            st.session_state['show_order_ticket'] = True
-                           st.session_state['show_quote_modal'] = False
                            st.session_state['paper_trade_ticker'] = q_ticker
                            st.rerun()
                  with qb2:
                       if st.button("Sell", key="qb_sell"):
                            st.session_state['show_order_ticket'] = True
-                           st.session_state['show_quote_modal'] = False
                            st.session_state['paper_trade_ticker'] = q_ticker
-                           # We can't set action here easily without modifying render_ticket, but ticker helps
                            st.rerun()
                            
-                 hist = t.history(period="1mo")
-                 if not hist.empty:
-                     st.line_chart(hist['Close'])
-             except:
-                 st.error("Could not fetch quote")
+                 try:
+                     t = yf.Ticker(q_ticker)
+                     hist = t.history(period="1mo")
+                     if not hist.empty:
+                         st.line_chart(hist['Close'])
+                 except: pass
+             else:
+                 st.error(f"Could not fetch data for '{q_ticker}'. Symbol might be invalid or service is temporarily down.")
                  
     st.markdown("---")
 

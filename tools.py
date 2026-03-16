@@ -119,49 +119,44 @@ def get_stock_fundamentals(ticker: str) -> str:
         ticker (str): The stock ticker symbol (e.g., 'AAPL', 'MSFT').
     """
     try:
-        stock = yf.Ticker(ticker)
-        info = {}
-        try:
-            info = stock.info
-        except:
-            pass
-            
-        # Robust price fallback
-        cp = info.get("currentPrice") or info.get("regularMarketPrice")
-        if cp is None:
-            try:
-                if hasattr(stock, 'fast_info') and 'last_price' in stock.fast_info:
-                    cp = stock.fast_info['last_price']
-                if cp is None:
-                    cp = stock.history(period="1d")['Close'].iloc[-1]
-            except:
-                cp = "N/A"
+        # Use YahooQuery primarily (more stable in cloud)
+        from yahooquery import Ticker as YQTicker
+        yt = YQTicker(ticker)
         
-        # Extract key metrics
+        # Get data from different modules for a full picture
+        price_all = yt.price.get(ticker, {})
+        key_stats = yt.key_stats.get(ticker, {})
+        summary_detail = yt.summary_detail.get(ticker, {})
+        fin_data = yt.financial_data.get(ticker, {})
+        
+        # Robust price fallback
+        cp = fin_data.get('currentPrice') or summary_detail.get('regularMarketPrice') or price_all.get('regularMarketPrice')
+        
+        # Extract key metrics with safe defaults
         metrics = {
-            "Company": info.get("longName", "N/A") if info else ticker,
-            "Sector": info.get("sector", "N/A") if info else "N/A",
-            "Industry": info.get("industry", "N/A") if info else "N/A",
-            "Market Cap": info.get("marketCap", "N/A") if info else "N/A",
-            "Current Price": cp,
-            "52 Week High": info.get("fiftyTwoWeekHigh", "N/A") if info else "N/A",
-            "52 Week Low": info.get("fiftyTwoWeekLow", "N/A") if info else "N/A",
-            "Trailing P/E": info.get("trailingPE", "N/A") if info else "N/A",
-            "Forward P/E": info.get("forwardPE", "N/A") if info else "N/A",
-            "PEG Ratio": info.get("pegRatio", "N/A") if info else "N/A",
-            "Price to Book": info.get("priceToBook", "N/A") if info else "N/A",
-            "Return on Equity (ROE)": info.get("returnOnEquity", "N/A") if info else "N/A",
-            "Return on Assets (ROA)": info.get("returnOnAssets", "N/A") if info else "N/A",
-            "Debt to Equity": info.get("debtToEquity", "N/A") if info else "N/A",
-            "Current Ratio": info.get("currentRatio", "N/A") if info else "N/A",
-            "Dividend Yield": info.get("dividendYield", "N/A") if info else "N/A",
-            "Analyst Target Price": info.get("targetMeanPrice", "N/A") if info else "N/A",
-            "Analyst Recommendation": info.get("recommendationKey", "N/A") if info else "N/A"
+            "Company": price_all.get('longName', ticker),
+            "Sector": yt.summary_profile.get(ticker, {}).get('sector', "N/A"),
+            "Industry": yt.summary_profile.get(ticker, {}).get('industry', "N/A"),
+            "Market Cap": summary_detail.get('marketCap', "N/A"),
+            "Current Price": cp or "N/A",
+            "52 Week High": summary_detail.get('fiftyTwoWeekHigh', "N/A"),
+            "52 Week Low": summary_detail.get('fiftyTwoWeekLow', "N/A"),
+            "Trailing P/E": summary_detail.get('trailingPE', "N/A"),
+            "Forward P/E": summary_detail.get('forwardPE', "N/A"),
+            "PEG Ratio": key_stats.get('pegRatio', "N/A"),
+            "Price to Book": key_stats.get('priceToBook', "N/A"),
+            "Return on Equity (ROE)": fin_data.get('returnOnEquity', "N/A"),
+            "Return on Assets (ROA)": fin_data.get('returnOnAssets', "N/A"),
+            "Debt to Equity": fin_data.get('debtToEquity', "N/A"),
+            "Current Ratio": fin_data.get('currentRatio', "N/A"),
+            "Dividend Yield": summary_detail.get('dividendYield', "N/A"),
+            "Analyst Target Price": fin_data.get('targetMeanPrice', "N/A"),
+            "Analyst Recommendation": fin_data.get('recommendationKey', "N/A")
         }
         
         # Format the output as a readable string
         formatted_metrics = "\n".join([f"- **{k}**: {v}" for k, v in metrics.items()])
-        summary = info.get('longBusinessSummary', 'N/A') if info else "Detailed fundamentals currently unavailable via Yahoo Finance API."
+        summary = yt.summary_profile.get(ticker, {}).get('longBusinessSummary', 'N/A')
         return f"### Fundamentals for {ticker}\n\n{formatted_metrics}\n\n**Business Summary:**\n{summary}"
     except Exception as e:
         return f"Error fetching fundamentals for {ticker}: {str(e)}"

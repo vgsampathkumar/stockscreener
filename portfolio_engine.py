@@ -123,32 +123,37 @@ class PaperPortfolio:
                     "user_id", self.user_id).eq("ticker", ticker).execute()
 
     def _fetch_price(self, ticker: str) -> float:
-        """Robust price fetcher that avoids yfinance info blocks in cloud environments."""
+        """Robust price fetcher using yahooquery (reliable in cloud) with yfinance fallbacks."""
+        if not ticker: return 0.0
+        # 1. Try YahooQuery (Primary for deployment stability)
+        try:
+            from yahooquery import Ticker as YQTicker
+            yt = YQTicker(ticker)
+            price_data = yt.price
+            if ticker in price_data and isinstance(price_data[ticker], dict):
+                p = price_data[ticker].get('regularMarketPrice')
+                if p and p > 0: return float(p)
+        except Exception as e:
+            logger.debug(f"YahooQuery price fetch failed for {ticker}: {e}")
+
+        # 2. Try yfinance fallbacks
         try:
             t = yf.Ticker(ticker)
-            # 1. Try fast_info (New in yfinance, often more resilient than .info)
+            # fast_info
             try:
                 if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
                     p = t.fast_info['last_price']
                     if p and p > 0: return float(p)
             except: pass
-
-            # 2. Try .info (Legacy, flakey in cloud)
-            try:
-                info = t.info
-                p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
-                if p and p > 0: return float(p)
-            except: pass
-
-            # 3. Try .history (Most resilient, but slightly slower)
+            
+            # history
             h = t.history(period="1d")
             if not h.empty:
                 return float(h["Close"].iloc[-1])
-            
-            return 0.0
         except Exception as e:
-            logger.error(f"Failed to fetch price for {ticker}: {e}")
-            return 0.0
+            logger.error(f"yfinance price fetch failed for {ticker}: {e}")
+        
+        return 0.0
 
     def get_open_positions(self, include_live_prices: bool = True) -> pd.DataFrame:
         res = self.sb.table("positions").select("*").eq("user_id", self.user_id).execute()
@@ -159,14 +164,28 @@ class PaperPortfolio:
 
         tickers = df["ticker"].tolist()
         try:
-            prices = {tick: self._fetch_price(tick) for tick in tickers}
+            # Batch fetch via YahooQuery for performance
+            from yahooquery import Ticker as YQTicker
+            yt = YQTicker(tickers)
+            pd_data = yt.price
+            
+            prices = {}
+            for tick in tickers:
+                p = 0.0
+                if tick in pd_data and isinstance(pd_data[tick], dict):
+                    p = pd_data[tick].get('regularMarketPrice', 0.0)
+                
+                if not p or p <= 0:
+                    p = self._fetch_price(tick) # Fallback to robust individual fetch
+                prices[tick] = p
+
             df["current_price"] = df["ticker"].map(prices)
             df["market_value"] = df["shares"] * df["current_price"]
             df["total_cost"] = df["shares"] * df["avg_cost"]
             df["unrealized_pnl"] = df["market_value"] - df["total_cost"]
             df["return_pct"] = (df["unrealized_pnl"] / df["total_cost"]).fillna(0) * 100
         except Exception as e:
-            logger.error(f"Error in get_open_positions mapping: {e}")
+            logger.error(f"Error in get_open_positions: {e}")
             df["current_price"] = 0.0
         return df
 
