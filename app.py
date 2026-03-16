@@ -16,13 +16,62 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Sidebar Polish: Always show at least a header to force 'expanded' state ──
-# We do this as early as possible after set_page_config
+# ── Navigation Logic & State Setup ───────────────────────────────────────────
+if 'active_page' not in st.session_state:
+    st.session_state.active_page = "🎓 Education"
+
+def set_page(page_name):
+    st.session_state.active_page = page_name
+
 with st.sidebar:
     st.markdown("<div style='padding-top:10px;'></div>", unsafe_allow_html=True)
     if not is_authenticated():
         st.markdown("### 🏠 Welcome to TradeFox")
         st.info("Sign In or Continue as Guest to begin.")
+    
+    st.markdown("### 🏠 Navigation")
+    page_options = [
+        "🎓 Education",
+        "📊 Stock Screener",
+        "🔍 Single Stock Analyst",
+        "🌐 Macro Portfolio Analyst",
+        "💰 Paper Money Trading"
+    ]
+    
+    current_idx = page_options.index(st.session_state.active_page) if st.session_state.active_page in page_options else 0
+    selected_page = st.radio("Select Section", page_options, index=current_idx, label_visibility="collapsed")
+    
+    if selected_page != st.session_state.active_page:
+        st.session_state.active_page = selected_page
+        st.rerun()
+
+    if st.button("🏠 Back to Home", use_container_width=True):
+        set_page("🎓 Education")
+        st.rerun()
+    
+    st.markdown("---")
+    st.markdown("### ℹ️ How it works")
+    st.markdown("""
+1. 🎓 Learn the basics in **Education**
+2. 📊 Screen the market for opportunities
+3. 🔍 Deep-dive any stock with **AI Analyst**
+4. 🌐 Evaluate macro risks for your portfolio
+5. 💰 Practice risk-free with **Paper Money Trading**
+6. 🤖 **Ask Finley** in any tab for help!
+    """)
+    st.markdown("---")
+    for sec_name, sec_icon, sec_desc in [
+        ("🎓 Education", "🎓", "Interactive stock market school for all levels."),
+        ("📊 Stock Screener", "📊", "Scan global markets for undervalued stocks."),
+        ("🔍 Single Stock Analyst", "🔍", "AI-powered deep-dive on any stock ticker."),
+        ("🌐 Macro Portfolio Analyst", "🌐", "Personalized macro risk analysis for your holdings."),
+        ("💰 Paper Money Trading", "💰", "Simulated trading with virtual cash.")
+    ]:
+        with st.expander(f"{sec_icon} {sec_name}"):
+            st.markdown(sec_desc)
+    st.markdown("---")
+    st.caption("🤖 AI powered by Llama 3.3 via Groq")
+    st.caption("🚀 Build v1.1.2 - March 16")
 
 # ── Force Expand Script (Aggressive fallback) ────────────────────────────────
 st.markdown("""
@@ -198,13 +247,15 @@ st.markdown("""
         border: 1px solid #FF0000 !important;
         color: #FF0000 !important;
     }
+
+    /* ── Hide Developer Tools ── */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display:none !important;}
+    
 </style>
 """, unsafe_allow_html=True)
-
-# ── Auth Gate ────────────────────────────────────────────────────────────────
-if not is_authenticated():
-    render_auth_page()
-    st.stop()
 
 # ── App Header (shown when authenticated) ────────────────────────────────────
 render_user_header()
@@ -525,85 +576,46 @@ sticky_header_html = f"""
 </div>
 
 <script>
-    // Scroll anchor — keep page at top on first load
+    // Robust anchor to top to combat Streamlit's chat_input auto-scroll
     const anchorTop = () => {{
         try {{
-            const app = window.parent.document.querySelector('.stApp');
-            const main = window.parent.document.querySelector('section.main');
-            if (app) app.scrollTop = 0;
+            window.parent.scrollTo(0, 0);
+            const view = window.parent.document.querySelector('[data-testid="stAppViewContainer"]');
+            const main = window.parent.document.querySelector('.main');
+            if (view) view.scrollTop = 0;
             if (main) main.scrollTop = 0;
         }} catch(e) {{}}
     }};
     anchorTop();
-    const anchorInterval = setInterval(anchorTop, 30);
-    setTimeout(() => clearInterval(anchorInterval), 3000);
+    const anchorInterval = setInterval(anchorTop, 50);
+    setTimeout(() => clearInterval(anchorInterval), 4000); // give it 4 seconds to override the chatbot init
 </script>
 """
 st.markdown(sticky_header_html, unsafe_allow_html=True)
 
-# ── Navigation Logic ────────────────────────────────────────────────────────
+# ── Auth Gate ────────────────────────────────────────────────────────────────
+if not is_authenticated():
+    render_auth_page()
+    st.stop()
+
+# Load API Key for the modules below
 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
 
-if 'active_page' not in st.session_state:
-    st.session_state.active_page = "🎓 Education"
-
-def set_page(page_name):
-    st.session_state.active_page = page_name
-
-with st.sidebar:
-    st.markdown("### 🏠 Navigation")
-    page_options = [
-        "🎓 Education",
-        "📊 Stock Screener",
-        "🔍 Single Stock Analyst",
-        "🌐 Macro Portfolio Analyst",
-        "💰 Paper Money Trading"
-    ]
-    
-    current_idx = page_options.index(st.session_state.active_page) if st.session_state.active_page in page_options else 0
-    selected_page = st.radio("Select Section", page_options, index=current_idx, label_visibility="collapsed")
-    
-    if selected_page != st.session_state.active_page:
-        st.session_state.active_page = selected_page
-        st.rerun()
-
-    if st.button("🏠 Back to Home", use_container_width=True):
-        set_page("🎓 Education")
-        st.rerun()
-    
-    st.markdown("---")
-    st.markdown("### ℹ️ How it works")
-    st.markdown("""
-1. 🎓 Learn the basics in **Education**
-2. 📊 Screen the market for opportunities
-3. 🔍 Deep-dive any stock with **AI Analyst**
-4. 🌐 Evaluate macro risks for your portfolio
-5. 💰 Practice risk-free with **Paper Money Trading**
-6. 🤖 **Ask Finley** in any tab for help!
-    """)
-    st.markdown("---")
-    for sec_name, sec_icon, sec_desc in [
-        ("🎓 Education", "🎓", "Interactive stock market school for all levels."),
-        ("📊 Stock Screener", "📊", "Scan global markets for undervalued stocks."),
-        ("🔍 Single Stock Analyst", "🔍", "AI-powered deep-dive on any stock ticker."),
-        ("🌐 Macro Portfolio Analyst", "🌐", "Personalized macro risk analysis for your holdings."),
-        ("💰 Paper Money Trading", "💰", "Simulated trading with virtual cash.")
-    ]:
-        with st.expander(f"{sec_icon} {sec_name}"):
-            st.markdown(sec_desc)
-    st.markdown("---")
-    st.caption("🤖 AI powered by Llama 3.3 via Groq")
-    st.caption("🚀 Build v1.1.0 - March 16, 11:30 AM ET")
-
 # ── Portfolio Engine Setup ────────────────────────────────────────────────
+from portfolio_engine import PaperPortfolio, GuestPortfolio
+
 user_id = st.session_state.get("user_id")
 is_guest = (user_id == "guest_user")
 portfolio = None
 
-if user_id and not is_guest:
+if is_guest:
+    if 'portfolio' not in st.session_state or not isinstance(st.session_state.get('portfolio'), GuestPortfolio):
+        st.session_state['portfolio'] = GuestPortfolio()
+    portfolio = st.session_state['portfolio']
+elif user_id:
     sync_supabase_session()
     access_token = st.session_state.get("access_token")
-    if 'portfolio' not in st.session_state or st.session_state.get('portfolio_user_id') != user_id:
+    if 'portfolio' not in st.session_state or not isinstance(st.session_state.get('portfolio'), PaperPortfolio) or st.session_state.get('portfolio_user_id') != user_id:
         st.session_state['portfolio'] = PaperPortfolio(user_id=user_id, access_token=access_token)
         st.session_state['portfolio_user_id'] = user_id
     else:
@@ -783,8 +795,8 @@ elif active_page == "🌐 Macro Portfolio Analyst":
 elif active_page == "💰 Paper Money Trading":
     if is_guest:
         st.markdown("<h3 style='font-size: 1.1rem; margin-top: 0;'>💰 Paper Money Trading</h3>", unsafe_allow_html=True)
-        st.warning("⚠️ **Guest Mode**")
-        st.markdown("Create an account to save portfolio data.")
-    else:
-        render_paper_trader(portfolio)
-        render_chat(groq_api_key, tab_context="paper_trader")
+        st.warning("⚠️ **Guest Mode:** Trades will not be permanently saved. Create an account for a persistent portfolio.")
+    
+    # We now pass the local GuestPortfolio so the UI renders fully
+    render_paper_trader(portfolio)
+    render_chat(groq_api_key, tab_context="paper_trader")

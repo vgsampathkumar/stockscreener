@@ -360,3 +360,47 @@ class PaperPortfolio:
             "balance": 100000.0,
             "last_updated": datetime.now(pytz.UTC).isoformat()
         }).eq("user_id", uid).execute()
+
+
+class GuestPortfolio:
+    """A lightweight, purely in-memory portfolio for guest users."""
+    def __init__(self):
+        self.cash = 100000.0
+        self.positions = []
+        self.orders = []
+        self.trades = []
+        self.perf = pd.DataFrame()
+        self.market_status = {"status": "OPEN", "reason": "Guest mode is always open", "is_open": True, "market": "Guest"}
+        
+    def refresh_client(self, _): pass
+    def get_market_status(self, ticker=""): return self.market_status
+    def get_cash_balance(self): return self.cash
+    
+    def get_open_positions(self, include_live_prices=True):
+        if not self.positions: return pd.DataFrame()
+        df = pd.DataFrame(self.positions)
+        if include_live_prices:
+            # Fake current price for guest since it's unpersisted anyway
+            df['current_price'] = df['avg_cost']
+            df['market_value'] = df['shares'] * df['current_price']
+            df['total_cost'] = df['shares'] * df['avg_cost']
+            df['unrealized_pnl'] = 0.0
+            df['return_pct'] = 0.0
+        return df
+        
+    def get_total_portfolio_value(self):
+        df = self.get_open_positions()
+        pos_val = df['market_value'].sum() if not df.empty and 'market_value' in df.columns else 0.0
+        return self.cash + pos_val
+        
+    def submit_order(self, ticker, action, order_type, shares, limit_price=None, stop_price=None, trail_value=None, trail_type=None, condition=None, tif="Day", notes=""):
+        return {"status": "ERROR", "message": "Guest accounts cannot submit orders. Please sign up to trade."}
+        
+    def get_pending_orders(self): return pd.DataFrame()
+    def get_trade_history(self): return pd.DataFrame()
+    def cancel_order(self, _): pass
+    def log_daily_performance(self): pass
+    def get_performance_history(self): return pd.DataFrame()
+    def reset_portfolio(self):
+        self.cash = 100000.0
+        self.positions = []

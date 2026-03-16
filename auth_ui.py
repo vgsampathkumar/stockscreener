@@ -105,6 +105,19 @@ def render_auth_page():
         # ── Sign In ─────────────────────────────────────────────────────────
         with tab_in:
             st.markdown("<br>", unsafe_allow_html=True)
+            
+            # --- Google OAuth Sign In ---
+            try:
+                # Ask supabase to generate the oauth link
+                # We need to explicitly pass the redirect URL to where the streamlit app lives
+                redirect_uri = "https://papermoneytrading.streamlit.app"
+                res_oauth = supabase.auth.sign_in_with_oauth({"provider": "google", "options": {"redirect_to": redirect_uri}})
+                if hasattr(res_oauth, 'url'):
+                    st.link_button("🌐 Continue with Google", res_oauth.url, type="secondary", use_container_width=True)
+                    st.markdown("<div style='text-align:center; padding: 10px 0;'>&mdash; or &mdash;</div>", unsafe_allow_html=True)
+            except Exception as e:
+                pass # Fallback to password only if OAuth is not configured
+                
             email_in = st.text_input("Email", key="signin_email", placeholder="you@example.com")
             pass_in = st.text_input("Password", key="signin_pass", type="password", placeholder="••••••••")
             st.markdown("<br>", unsafe_allow_html=True)

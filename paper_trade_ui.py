@@ -270,18 +270,15 @@ def render_quote_panel():
 
 
 def render_summary_tab(portfolio, cash, pos_df, total_val, start_val, total_ret, ret_color, sign):
-    # Full-width layout for the balance card
-    st.markdown("""
-    <div style="border:1px solid #e5e7eb; border-radius:15px; padding:20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"<p style='margin:0; font-size:1.4em; font-weight:bold; color:#111827'>Balance ⓘ</p><h1 style='margin:0; font-size:2.5em;'>${total_val:,.2f}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='color: {ret_color}; font-weight: bold; margin-bottom: 25px;'>{sign}${total_val - start_val:,.2f} ({sign}{total_ret:.2f}%) <span style='font-weight:normal; color:#6b7280'>Today's gain/loss</span></p>", unsafe_allow_html=True)
-    
-    # Performance chart for the Balance card
-    perf_df = portfolio.get_performance_history()
-    fig_small = go.Figure()
-    fig_small.add_trace(go.Scatter(x=perf_df['date'], y=perf_df['total_value'], mode='lines', line=dict(color='#3b82f6', width=2)))
+    # Full-width container via Streamlit instead of raw HTML divs
+    with st.container(border=True):
+        st.markdown(f"<p style='margin:0; font-size:1.4em; font-weight:bold; color:#111827'>Balance ⓘ</p><h1 style='margin:0; font-size:2.5em;'>${total_val:,.2f}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: {ret_color}; font-weight: bold; margin-bottom: 25px;'>{sign}${total_val - start_val:,.2f} ({sign}{total_ret:.2f}%) <span style='font-weight:normal; color:#6b7280'>Today's gain/loss</span></p>", unsafe_allow_html=True)
+        
+        # Performance chart for the Balance card
+        perf_df = portfolio.get_performance_history()
+        fig_small = go.Figure()
+        fig_small.add_trace(go.Scatter(x=perf_df['date'], y=perf_df['total_value'], mode='lines', line=dict(color='#3b82f6', width=2)))
     fig_small.update_layout(
         margin=dict(l=0, r=0, t=10, b=0), 
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), 
@@ -290,8 +287,8 @@ def render_summary_tab(portfolio, cash, pos_df, total_val, start_val, total_ret,
         height=180, 
         showlegend=False
     )
+    )
     st.plotly_chart(fig_small, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_positions_tab(pos_df, total_val):
@@ -346,21 +343,10 @@ def render_positions_tab(pos_df, total_val):
 
 
 def render_activity_tab(portfolio):
+    # Simplified header without the non-functional mock search inputs
     st.markdown("""
-    <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;'>
-        <div style='border:1px solid #d1d5db; border-radius:4px; padding:6px 12px; display:inline-block; width:300px;'>
-            <span style='color:#6b7280'>🔍 Search Activity & Orders</span>
-        </div>
+    <div style='display:flex; justify-content:flex-end; align-items:center; margin-bottom: 20px;'>
         <div style='color:#6b7280; font-size:0.9em;'>As of Mar-09-2026 6:44 p.m. ET 🔄 &nbsp;&nbsp; 🖨 &nbsp;&nbsp; 📥</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div style='display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 25px;'>
-        <div style='border:1px solid #d1d5db; border-radius:20px; padding:4px 15px;'>Past 30 days ▾</div>
-        <div style='border:1px solid #008a00; color:#008a00; border-radius:20px; padding:4px 15px; font-weight:bold;'>Orders</div>
-        <div style='border:1px solid #008a00; color:#008a00; border-radius:20px; padding:4px 15px;'>History</div>
-        <div style='border:1px solid #d1d5db; border-radius:20px; padding:4px 15px;'>⧸⧹ More filters</div>
     </div>
     """, unsafe_allow_html=True)
 
