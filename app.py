@@ -81,7 +81,8 @@ st.markdown("""
         const forceExpand = () => {
             const sidebar = pdoc.querySelector('section[data-testid="stSidebar"]');
             if (sidebar && sidebar.getAttribute('aria-expanded') === 'false') {
-                const expandBtn = pdoc.querySelector('[data-testid="stSidebarCollapsedControl"]') || 
+                const expandBtn = pdoc.querySelector('[data-testid="collapsedControl"]') ||
+                                  pdoc.querySelector('[data-testid="stSidebarCollapsedControl"]') || 
                                   pdoc.querySelector('button[aria-label="Expand sidebar"]');
                 if (expandBtn) {
                     expandBtn.click();
@@ -257,7 +258,8 @@ st.markdown("""
     /* 5. Reposition and Style Native Sidebar Controls to Middle-Left Edge */
     
     /* Expand Button (when collapsed) */
-    [data-testid="stSidebarCollapsedControl"] {
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
         position: fixed !important;
         top: 50% !important;
         left: 0 !important;
@@ -274,10 +276,12 @@ st.markdown("""
         cursor: pointer !important;
         pointer-events: auto !important;
     }
-    [data-testid="stSidebarCollapsedControl"]:hover {
+    [data-testid="stSidebarCollapsedControl"]:hover,
+    [data-testid="collapsedControl"]:hover {
         background: #FF0000 !important;
     }
-    [data-testid="stSidebarCollapsedControl"] button {
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
         width: 100% !important;
         height: 100% !important;
         background: transparent !important;
@@ -289,14 +293,17 @@ st.markdown("""
         pointer-events: auto !important;
         visibility: visible !important;
     }
-    [data-testid="stSidebarCollapsedControl"]:hover button {
+    [data-testid="stSidebarCollapsedControl"]:hover button,
+    [data-testid="collapsedControl"]:hover button {
         color: white !important;
     }
     /* Replace SVG with Arrow Icon */
-    [data-testid="stSidebarCollapsedControl"] svg {
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="collapsedControl"] svg {
         display: none !important;
     }
-    [data-testid="stSidebarCollapsedControl"] button::after {
+    [data-testid="stSidebarCollapsedControl"] button::after,
+    [data-testid="collapsedControl"] button::after {
         content: "»" !important;
         font-size: 20px !important;
         font-weight: 900 !important;
@@ -304,7 +311,8 @@ st.markdown("""
     }
 
     /* Collapse Button (when expanded) */
-    [data-testid="stSidebarCollapseButton"] {
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="sidebarCollapseButton"] {
         position: absolute !important;
         top: 50% !important;
         right: -16px !important;
@@ -321,10 +329,12 @@ st.markdown("""
         cursor: pointer !important;
         pointer-events: auto !important;
     }
-    [data-testid="stSidebarCollapseButton"]:hover {
+    [data-testid="stSidebarCollapseButton"]:hover,
+    [data-testid="sidebarCollapseButton"]:hover {
         background: #FF0000 !important;
     }
-    [data-testid="stSidebarCollapseButton"] button {
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="sidebarCollapseButton"] button {
         width: 100% !important;
         height: 100% !important;
         background: transparent !important;
@@ -336,13 +346,16 @@ st.markdown("""
         pointer-events: auto !important;
         visibility: visible !important;
     }
-    [data-testid="stSidebarCollapseButton"]:hover button {
+    [data-testid="stSidebarCollapseButton"]:hover button,
+    [data-testid="sidebarCollapseButton"]:hover button {
         color: white !important;
     }
-    [data-testid="stSidebarCollapseButton"] svg {
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="sidebarCollapseButton"] svg {
         display: none !important;
     }
-    [data-testid="stSidebarCollapseButton"] button::after {
+    [data-testid="stSidebarCollapseButton"] button::after,
+    [data-testid="sidebarCollapseButton"] button::after {
         content: "«" !important;
         font-size: 20px !important;
         font-weight: 900 !important;
