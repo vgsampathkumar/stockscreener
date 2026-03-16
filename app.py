@@ -249,10 +249,10 @@ st.markdown("""
     }
 
     /* ── Hide Developer Tools ── */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display:none !important;}
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    #MainMenu {visibility: hidden !important; display: none !important;}
+    footer {visibility: hidden !important; display: none !important;}
+    .stDeployButton, .stAppDeployButton {display: none !important;}
     
     /* 5. Reposition and Style Native Sidebar Controls to Middle-Left Edge */
     
