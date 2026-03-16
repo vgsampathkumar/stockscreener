@@ -251,6 +251,17 @@ def render_quote_panel():
                  except: pass
              else:
                  st.error(f"Could not fetch data for '{q_ticker}'. Symbol might be invalid or service is temporarily down.")
+                 with st.expander("🛠️ Debug Info (Click to see raw error)"):
+                      try:
+                          from yahooquery import Ticker as YQTicker
+                          yt = YQTicker(q_ticker)
+                          p_data = yt.price
+                          st.write("YahooQuery Price Data:", p_data)
+                          
+                          t = yf.Ticker(q_ticker)
+                          st.write("yfinance history tail:", t.history(period="1d").tail())
+                      except Exception as de:
+                          st.exception(de)
                  
     st.markdown("---")
 
