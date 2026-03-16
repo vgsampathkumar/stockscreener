@@ -560,8 +560,8 @@ sticky_header_html = f"""
     }}
     
     .idx-item {{ margin-right: 40px; }}
-    .news-item { margin-right: 50px; }
-    .news-item a:hover { text-decoration: underline !important; color: #FF0000 !important; }
+    .news-item {{ margin-right: 50px; }}
+    .news-item a:hover {{ text-decoration: underline !important; color: #FF0000 !important; }}
 </style>
 
 <div class="header-sticky-wrapper">
