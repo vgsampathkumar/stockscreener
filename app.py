@@ -254,6 +254,130 @@ st.markdown("""
     header {visibility: hidden;}
     .stDeployButton {display:none !important;}
     
+    /* 5. Reposition and Style Native Sidebar Controls to Middle-Left Edge */
+    
+    /* Expand Button (when collapsed) */
+    [data-testid="stSidebarCollapsedControl"] {
+        position: fixed !important;
+        top: 50% !important;
+        left: 0 !important;
+        transform: translateY(-50%) !important;
+        z-index: 10000005 !important; /* Higher than stHeader (10000001) */
+        display: flex !important;
+        visibility: visible !important;
+        background: white !important;
+        border: 1.5px solid #d1d5db !important;
+        border-radius: 0 10px 10px 0 !important;
+        width: 32px !important;
+        height: 56px !important;
+        box-shadow: 4px 0 12px rgba(0,0,0,0.18) !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
+    }
+    [data-testid="stSidebarCollapsedControl"]:hover {
+        background: #FF0000 !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button {
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #374151 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+    [data-testid="stSidebarCollapsedControl"]:hover button {
+        color: white !important;
+    }
+    /* Replace SVG with Arrow Icon */
+    [data-testid="stSidebarCollapsedControl"] svg {
+        display: none !important;
+    }
+    [data-testid="stSidebarCollapsedControl"] button::after {
+        content: "»" !important;
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+    }
+
+    /* Collapse Button (when expanded) */
+    [data-testid="stSidebarCollapseButton"] {
+        position: absolute !important;
+        top: 50% !important;
+        right: -16px !important;
+        transform: translateY(-50%) !important;
+        z-index: 10000000 !important;
+        display: flex !important;
+        visibility: visible !important;
+        background: white !important;
+        border: 1.5px solid #d1d5db !important;
+        border-radius: 50% !important;
+        width: 32px !important;
+        height: 32px !important;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+        pointer-events: auto !important;
+    }
+    [data-testid="stSidebarCollapseButton"]:hover {
+        background: #FF0000 !important;
+    }
+    [data-testid="stSidebarCollapseButton"] button {
+        width: 100% !important;
+        height: 100% !important;
+        background: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #374151 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+    [data-testid="stSidebarCollapseButton"]:hover button {
+        color: white !important;
+    }
+    [data-testid="stSidebarCollapseButton"] svg {
+        display: none !important;
+    }
+    [data-testid="stSidebarCollapseButton"] button::after {
+        content: "«" !important;
+        font-size: 20px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+    }
+
+    /* Global Visibility and Layering Fixes */
+    [data-testid="stSidebarHeader"] {
+        background: transparent !important;
+        padding: 0 !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        pointer-events: none !important; 
+        z-index: 10000001 !important; /* Higher than Ribbons (999999) */
+    }
+    header[data-testid="stHeader"] button {
+        pointer-events: auto !important;
+    }
+    
+    /* ── Main Content Area ─────────────────────────── */
+    .block-container {
+        padding-top: 0.1rem !important;
+        padding-bottom: 0rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Offset main content — Header ribbons occupy ~40-50px */
+    div[data-testid="stVerticalBlock"] > div:first-child {
+        margin-top: 0px !important; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -436,133 +560,8 @@ sticky_header_html = f"""
     }}
     
     .idx-item {{ margin-right: 40px; }}
-    .news-item {{ margin-right: 50px; }}
-    .news-item a:hover {{ text-decoration: underline !important; color: #FF0000 !important; }}
-
-    /* 5. Reposition and Style Native Sidebar Controls to Middle-Left Edge */
-    
-    /* Expand Button (when collapsed) */
-    [data-testid="stSidebarCollapsedControl"] {{
-        position: fixed !important;
-        top: 50% !important;
-        left: 0 !important;
-        transform: translateY(-50%) !important;
-        z-index: 10000005 !important; /* Higher than stHeader (10000001) */
-        display: flex !important;
-        visibility: visible !important;
-        background: white !important;
-        border: 1.5px solid #d1d5db !important;
-        border-radius: 0 10px 10px 0 !important;
-        width: 32px !important;
-        height: 56px !important;
-        box-shadow: 4px 0 12px rgba(0,0,0,0.18) !important;
-        cursor: pointer !important;
-        pointer-events: auto !important;
-    }}
-    [data-testid="stSidebarCollapsedControl"]:hover {{
-        background: #FF0000 !important;
-    }}
-    [data-testid="stSidebarCollapsedControl"] button {{
-        width: 100% !important;
-        height: 100% !important;
-        background: transparent !important;
-        border: none !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        color: #374151 !important;
-        pointer-events: auto !important;
-        visibility: visible !important;
-    }}
-    [data-testid="stSidebarCollapsedControl"]:hover button {{
-        color: white !important;
-    }}
-    /* Replace SVG with Arrow Icon */
-    [data-testid="stSidebarCollapsedControl"] svg {{
-        display: none !important;
-    }}
-    [data-testid="stSidebarCollapsedControl"] button::after {{
-        content: "»" !important;
-        font-size: 20px !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-    }}
-
-    /* Collapse Button (when expanded) */
-    [data-testid="stSidebarCollapseButton"] {{
-        position: absolute !important;
-        top: 50% !important;
-        right: -16px !important;
-        transform: translateY(-50%) !important;
-        z-index: 10000000 !important;
-        display: flex !important;
-        visibility: visible !important;
-        background: white !important;
-        border: 1.5px solid #d1d5db !important;
-        border-radius: 50% !important;
-        width: 32px !important;
-        height: 32px !important;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.15) !important;
-        cursor: pointer !important;
-        pointer-events: auto !important;
-    }}
-    [data-testid="stSidebarCollapseButton"]:hover {{
-        background: #FF0000 !important;
-    }}
-    [data-testid="stSidebarCollapseButton"] button {{
-        width: 100% !important;
-        height: 100% !important;
-        background: transparent !important;
-        border: none !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        color: #374151 !important;
-        pointer-events: auto !important;
-        visibility: visible !important;
-    }}
-    [data-testid="stSidebarCollapseButton"]:hover button {{
-        color: white !important;
-    }}
-    [data-testid="stSidebarCollapseButton"] svg {{
-        display: none !important;
-    }}
-    [data-testid="stSidebarCollapseButton"] button::after {{
-        content: "«" !important;
-        font-size: 20px !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-    }}
-
-    /* Global Visibility and Layering Fixes */
-    [data-testid="stSidebarHeader"] {{
-        background: transparent !important;
-        padding: 0 !important;
-        min-height: 0 !important;
-        overflow: visible !important;
-    }}
-    header[data-testid="stHeader"] {{
-        background: transparent !important;
-        pointer-events: none !important; 
-        z-index: 10000001 !important; /* Higher than Ribbons (999999) */
-    }}
-    header[data-testid="stHeader"] button {{
-        pointer-events: auto !important;
-    }}
-    
-    /* ── Main Content Area ─────────────────────────── */
-    .block-container {{
-        padding-top: 0.1rem !important;
-        padding-bottom: 0rem !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 100% !important;
-    }}
-    
-    /* Offset main content — Header ribbons occupy ~40-50px */
-    div[data-testid="stVerticalBlock"] > div:first-child {{
-        margin-top: 0px !important; 
-    }}
+    .news-item { margin-right: 50px; }
+    .news-item a:hover { text-decoration: underline !important; color: #FF0000 !important; }
 </style>
 
 <div class="header-sticky-wrapper">
