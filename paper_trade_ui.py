@@ -287,7 +287,6 @@ def render_summary_tab(portfolio, cash, pos_df, total_val, start_val, total_ret,
         height=180, 
         showlegend=False
     )
-    )
     st.plotly_chart(fig_small, use_container_width=True)
 
 
