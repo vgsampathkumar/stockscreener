@@ -116,10 +116,7 @@ def render_paper_trader(portfolio: PaperPortfolio):
     # --- Compact Title ---
     st.markdown("<h2 style='margin:0; font-size:1.15rem; font-weight:800;'>💰 Paper Money Trading</h2>", unsafe_allow_html=True)
 
-    # Order Ticket Panel Overlay (takes over the whole page)
-    if st.session_state.get('show_order_ticket', False):
-        render_order_ticket(portfolio)
-        return
+
 
     # --- Tabbed Content (Trade & Quote are part of the tab bar) ---
     st.markdown('<div class="paper-tabs">', unsafe_allow_html=True)
@@ -400,10 +397,7 @@ def render_order_ticket(portfolio: PaperPortfolio):
     st.markdown("### 📋 ORDER TICKET")
     
     with st.container(border=True):
-        if st.button("← Back to Portfolio"):
-             st.session_state['show_order_ticket'] = False
-             st.rerun()
-             
+
         # Pre-fills from session state if coming from other tabs
         default_ticker = st.session_state.get('paper_trade_ticker', 'AAPL')
         default_notes = st.session_state.get('paper_trade_notes', '')
