@@ -12,22 +12,32 @@ from portfolio_engine import PaperPortfolio
 def get_price_robust(ticker: str) -> float:
     """Resilient one-off price fetcher using YahooQuery (Primary) and yfinance (Fallback)."""
     if not ticker: return 0.0
+    ticker = ticker.upper().strip()
     # 1. Try YahooQuery
     try:
         from yahooquery import Ticker as YQTicker
         yt = YQTicker(ticker)
         price_data = yt.price
-        if ticker in price_data and isinstance(price_data[ticker], dict):
-            p = price_data[ticker].get('regularMarketPrice')
-            if p and p > 0: return float(p)
+        if isinstance(price_data, dict):
+            # Sometimes the key might be slightly different or redirected
+            data = price_data.get(ticker)
+            if not data and len(price_data) == 1:
+                data = next(iter(price_data.values()))
+            
+            if isinstance(data, dict):
+                p = data.get('regularMarketPrice')
+                if p and p > 0: return float(p)
     except: pass
     
     # 2. Try yfinance fallbacks
     try:
         t = yf.Ticker(ticker)
-        if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
-            p = t.fast_info['last_price']
+        # fast_info is very fast and ignores scraping blocks often
+        if hasattr(t, 'fast_info'):
+            p = t.fast_info.get('last_price')
             if p and p > 0: return float(p)
+        
+        # history is the ultimate fallback
         h = t.history(period="1d")
         if not h.empty:
             return float(h["Close"].iloc[-1])
@@ -209,10 +219,13 @@ def render_quote_panel():
              if cp > 0:
                  # Try to get the name safely
                  name = q_ticker
-                 try:
+                  try:
                      from yahooquery import Ticker as YQTicker
                      yt = YQTicker(q_ticker)
-                     name = yt.quote_type.get(q_ticker, {}).get('longName', q_ticker)
+                     name_data = yt.quote_type.get(q_ticker, {})
+                     if not name_data and len(yt.quote_type) > 0:
+                          name_data = next(iter(yt.quote_type.values()))
+                     name = name_data.get('longName', q_ticker)
                  except: pass
                  
                  st.markdown(f"**{name} ({q_ticker})** | **${cp:.2f}**")

@@ -52,27 +52,61 @@ class PaperPortfolio:
 
     # ── Market Status ─────────────────────────────────────────────────────────
 
-    def get_market_status(self) -> Dict[str, Any]:
-        """Check if the US stock market is currently open."""
-        now_et = datetime.now(pytz.timezone('US/Eastern'))
+    def get_market_status(self, ticker: str = "^GSPC") -> Dict[str, Any]:
+        """Check if the market for a specific ticker is open. Defaults to NYSE."""
+        ticker = ticker.upper()
+        
+        # Suffix to Calendar Mapping
+        calendar_map = {
+            ".NS": "NSE", ".BO": "BSE", # India
+            ".L": "LSE",               # UK
+            ".HK": "HKEX",             # Hong Kong
+            ".T": "TSE",               # Tokyo
+            ".DE": "XETR",             # Germany
+            ".PA": "ENXTPA",           # France
+            ".TO": "TSX", ".V": "TSXV", # Canada
+            ".AX": "ASX",              # Australia
+            ".SS": "SSE", ".SZ": "SZSE" # China
+        }
+        
+        cal_name = "NYSE"
+        for suffix, cal in calendar_map.items():
+            if ticker.endswith(suffix):
+                cal_name = cal
+                break
+        
+        # If it's a US stock (no suffix or .US), use NYSE
+        if "." not in ticker or ticker.endswith(".US"):
+            cal_name = "NYSE"
+
         try:
-            nyse = mcal.get_calendar('NYSE')
-            schedule = nyse.schedule(start_date=now_et.date(), end_date=now_et.date())
-            is_trading_day = not schedule.empty
-        except Exception:
-            is_trading_day = now_et.weekday() < 5
-
-        if not is_trading_day:
-            return {"status": "CLOSED", "reason": "Weekend or Holiday", "is_open": False}
-
-        t = now_et.time()
-        if datetime_time(9, 30) <= t <= datetime_time(16, 0):
-            return {"status": "OPEN", "reason": "Market is currently open", "is_open": True}
-        elif datetime_time(4, 0) <= t < datetime_time(9, 30):
-            return {"status": "PRE-MARKET", "reason": "Pre-market trading hours", "is_open": False}
-        elif datetime_time(16, 0) < t <= datetime_time(20, 0):
-            return {"status": "AFTER-HOURS", "reason": "After-hours trading", "is_open": False}
-        return {"status": "CLOSED", "reason": "Outside all trading hours", "is_open": False}
+            cal = mcal.get_calendar(cal_name)
+            # Use the local timezone of the exchange for more accurate "is_open"
+            exchange_tz = pytz.timezone(cal.tz.zone)
+            now_local = datetime.now(exchange_tz)
+            
+            schedule = cal.schedule(start_date=now_local.date(), end_date=now_local.date())
+            if schedule.empty:
+                return {"status": "CLOSED", "reason": f"{cal_name} is closed today (Weekend/Holiday)", "is_open": False, "market": cal_name}
+            
+            # Use is_open check which handles pre/post market if configured, 
+            # but simple time-of-day check is often safer for paper trading
+            t = now_local.time()
+            open_time = schedule.iloc[0]['market_open'].astimezone(exchange_tz).time()
+            close_time = schedule.iloc[0]['market_close'].astimezone(exchange_tz).time()
+            
+            if open_time <= t <= close_time:
+                return {"status": "OPEN", "reason": f"{cal_name} is open", "is_open": True, "market": cal_name}
+            elif t < open_time:
+                return {"status": "PRE-MARKET", "reason": "Before market open", "is_open": False, "market": cal_name}
+            else:
+                return {"status": "AFTER-HOURS", "reason": "After market close", "is_open": False, "market": cal_name}
+        except Exception as e:
+            # Fallback for unknown calendars: M-F 9am-4pm local usually works
+            logger.warning(f"Market calendar error for {cal_name}: {e}")
+            now = datetime.now()
+            is_weekday = now.weekday() < 5
+            return {"status": "OPEN" if is_weekday else "CLOSED", "is_open": is_weekday, "market": cal_name}
 
     # ── Cash ─────────────────────────────────────────────────────────────────
 
@@ -201,21 +235,24 @@ class PaperPortfolio:
     def submit_order(self, ticker: str, action: str, order_type: str, shares: int,
                      limit_price=None, stop_price=None, trail_value=None,
                      trail_type=None, condition=None, tif="Day", notes="") -> Dict:
-        market = self.get_market_status()
-        status = "PENDING" if not market["is_open"] else "PENDING"
-
+        ticker = ticker.upper()
+        market = self.get_market_status(ticker)
+        
+        # Initial status is PENDING. If filled immediately, it updates to FILLED.
         res = self.sb.table("orders").insert({
-            "user_id": self.user_id, "ticker": ticker.upper(), "action": action,
+            "user_id": self.user_id, "ticker": ticker, "action": action,
             "order_type": order_type, "shares": shares, "limit_price": limit_price,
             "stop_price": stop_price, "trail_value": trail_value, "trail_type": trail_type,
-            "condition": condition, "tif": tif, "status": status,
+            "condition": condition, "tif": tif, "status": "PENDING",
             "submitted_at": datetime.now(pytz.UTC).isoformat(), "notes": notes
         }).execute()
         order_id = res.data[0]["id"] if res.data else None
 
         if market["is_open"] and order_type == "Market":
-            return self._fill_order(order_id, ticker.upper(), action, shares, notes)
-        return {"status": "PENDING", "message": f"Order queued as PENDING. Market is {market['status']}."}
+            return self._fill_order(order_id, ticker, action, shares, notes)
+        
+        msg = f"Order queued as PENDING. {market.get('market', 'Market')} is {market['status']}."
+        return {"status": "PENDING", "message": msg}
 
     def _fill_order(self, order_id: str, ticker: str, action: str, shares: int, notes: str) -> Dict:
         try:
