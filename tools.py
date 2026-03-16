@@ -120,33 +120,49 @@ def get_stock_fundamentals(ticker: str) -> str:
     """
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
+        info = {}
+        try:
+            info = stock.info
+        except:
+            pass
+            
+        # Robust price fallback
+        cp = info.get("currentPrice") or info.get("regularMarketPrice")
+        if cp is None:
+            try:
+                if hasattr(stock, 'fast_info') and 'last_price' in stock.fast_info:
+                    cp = stock.fast_info['last_price']
+                if cp is None:
+                    cp = stock.history(period="1d")['Close'].iloc[-1]
+            except:
+                cp = "N/A"
         
         # Extract key metrics
         metrics = {
-            "Company": info.get("longName", "N/A"),
-            "Sector": info.get("sector", "N/A"),
-            "Industry": info.get("industry", "N/A"),
-            "Market Cap": info.get("marketCap", "N/A"),
-            "Current Price": info.get("currentPrice", "N/A"),
-            "52 Week High": info.get("fiftyTwoWeekHigh", "N/A"),
-            "52 Week Low": info.get("fiftyTwoWeekLow", "N/A"),
-            "Trailing P/E": info.get("trailingPE", "N/A"),
-            "Forward P/E": info.get("forwardPE", "N/A"),
-            "PEG Ratio": info.get("pegRatio", "N/A"),
-            "Price to Book": info.get("priceToBook", "N/A"),
-            "Return on Equity (ROE)": info.get("returnOnEquity", "N/A"),
-            "Return on Assets (ROA)": info.get("returnOnAssets", "N/A"),
-            "Debt to Equity": info.get("debtToEquity", "N/A"),
-            "Current Ratio": info.get("currentRatio", "N/A"),
-            "Dividend Yield": info.get("dividendYield", "N/A"),
-            "Analyst Target Price": info.get("targetMeanPrice", "N/A"),
-            "Analyst Recommendation": info.get("recommendationKey", "N/A")
+            "Company": info.get("longName", "N/A") if info else ticker,
+            "Sector": info.get("sector", "N/A") if info else "N/A",
+            "Industry": info.get("industry", "N/A") if info else "N/A",
+            "Market Cap": info.get("marketCap", "N/A") if info else "N/A",
+            "Current Price": cp,
+            "52 Week High": info.get("fiftyTwoWeekHigh", "N/A") if info else "N/A",
+            "52 Week Low": info.get("fiftyTwoWeekLow", "N/A") if info else "N/A",
+            "Trailing P/E": info.get("trailingPE", "N/A") if info else "N/A",
+            "Forward P/E": info.get("forwardPE", "N/A") if info else "N/A",
+            "PEG Ratio": info.get("pegRatio", "N/A") if info else "N/A",
+            "Price to Book": info.get("priceToBook", "N/A") if info else "N/A",
+            "Return on Equity (ROE)": info.get("returnOnEquity", "N/A") if info else "N/A",
+            "Return on Assets (ROA)": info.get("returnOnAssets", "N/A") if info else "N/A",
+            "Debt to Equity": info.get("debtToEquity", "N/A") if info else "N/A",
+            "Current Ratio": info.get("currentRatio", "N/A") if info else "N/A",
+            "Dividend Yield": info.get("dividendYield", "N/A") if info else "N/A",
+            "Analyst Target Price": info.get("targetMeanPrice", "N/A") if info else "N/A",
+            "Analyst Recommendation": info.get("recommendationKey", "N/A") if info else "N/A"
         }
         
         # Format the output as a readable string
         formatted_metrics = "\n".join([f"- **{k}**: {v}" for k, v in metrics.items()])
-        return f"### Fundamentals for {ticker}\n\n{formatted_metrics}\n\n**Business Summary:**\n{info.get('longBusinessSummary', 'N/A')}"
+        summary = info.get('longBusinessSummary', 'N/A') if info else "Detailed fundamentals currently unavailable via Yahoo Finance API."
+        return f"### Fundamentals for {ticker}\n\n{formatted_metrics}\n\n**Business Summary:**\n{summary}"
     except Exception as e:
         return f"Error fetching fundamentals for {ticker}: {str(e)}"
 

@@ -122,6 +122,34 @@ class PaperPortfolio:
                 self.sb.table("positions").update({"shares": new_shares}).eq(
                     "user_id", self.user_id).eq("ticker", ticker).execute()
 
+    def _fetch_price(self, ticker: str) -> float:
+        """Robust price fetcher that avoids yfinance info blocks in cloud environments."""
+        try:
+            t = yf.Ticker(ticker)
+            # 1. Try fast_info (New in yfinance, often more resilient than .info)
+            try:
+                if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
+                    p = t.fast_info['last_price']
+                    if p and p > 0: return float(p)
+            except: pass
+
+            # 2. Try .info (Legacy, flakey in cloud)
+            try:
+                info = t.info
+                p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+                if p and p > 0: return float(p)
+            except: pass
+
+            # 3. Try .history (Most resilient, but slightly slower)
+            h = t.history(period="1d")
+            if not h.empty:
+                return float(h["Close"].iloc[-1])
+            
+            return 0.0
+        except Exception as e:
+            logger.error(f"Failed to fetch price for {ticker}: {e}")
+            return 0.0
+
     def get_open_positions(self, include_live_prices: bool = True) -> pd.DataFrame:
         res = self.sb.table("positions").select("*").eq("user_id", self.user_id).execute()
         df = pd.DataFrame(res.data) if res.data else pd.DataFrame()
@@ -131,23 +159,15 @@ class PaperPortfolio:
 
         tickers = df["ticker"].tolist()
         try:
-            prices = {}
-            for tick in tickers:
-                t = yf.Ticker(tick)
-                info = t.info
-                p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
-                if p is None:
-                    h = t.history(period="1d")
-                    p = float(h["Close"].iloc[-1]) if not h.empty else 0.0
-                prices[tick] = p
+            prices = {tick: self._fetch_price(tick) for tick in tickers}
             df["current_price"] = df["ticker"].map(prices)
             df["market_value"] = df["shares"] * df["current_price"]
             df["total_cost"] = df["shares"] * df["avg_cost"]
             df["unrealized_pnl"] = df["market_value"] - df["total_cost"]
-            df["return_pct"] = (df["unrealized_pnl"] / df["total_cost"]) * 100
+            df["return_pct"] = (df["unrealized_pnl"] / df["total_cost"]).fillna(0) * 100
         except Exception as e:
-            logger.error(f"Error fetching live prices: {e}")
-            df["current_price"] = None
+            logger.error(f"Error in get_open_positions mapping: {e}")
+            df["current_price"] = 0.0
         return df
 
     def get_total_portfolio_value(self) -> float:
@@ -180,16 +200,22 @@ class PaperPortfolio:
 
     def _fill_order(self, order_id: str, ticker: str, action: str, shares: int, notes: str) -> Dict:
         try:
-            t = yf.Ticker(ticker)
-            info = t.info
-            price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
-            if price is None:
+            price = self._fetch_price(ticker)
+            if not price or price <= 0:
+                # Try one more time specifically for fillers
+                t = yf.Ticker(ticker)
                 h = t.history(period="1d")
-                price = float(h["Close"].iloc[-1]) if not h.empty else None
-            if price is None:
-                return {"status": "ERROR", "message": f"Could not fetch price for {ticker}"}
+                price = float(h["Close"].iloc[-1]) if not h.empty else 0.0
 
-            company = info.get("shortName", ticker)
+            if price <= 0:
+                return {"status": "ERROR", "message": f"Could not fetch a valid price for {ticker}. Market might be inaccessible."}
+
+            try:
+                info = yf.Ticker(ticker).info
+                company = info.get("shortName", ticker)
+            except:
+                company = ticker
+
             total = shares * price
 
             if action == "BUY":

@@ -8,6 +8,32 @@ from portfolio_engine import PaperPortfolio
 
 # ---- Cached helpers (called outside the class so st.cache_data works) ----
 
+@st.cache_data(ttl=5) # Real-time-ish for trades
+def get_price_robust(ticker: str) -> float:
+    """Resilient one-off price fetcher for cloud environments."""
+    if not ticker: return 0.0
+    try:
+        t = yf.Ticker(ticker)
+        # 1. fast_info
+        try:
+            if hasattr(t, 'fast_info') and 'last_price' in t.fast_info:
+                p = t.fast_info['last_price']
+                if p and p > 0: return float(p)
+        except: pass
+        # 2. info
+        try:
+            info = t.info
+            p = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+            if p and p > 0: return float(p)
+        except: pass
+        # 3. history
+        h = t.history(period="1d")
+        if not h.empty:
+            return float(h["Close"].iloc[-1])
+        return 0.0
+    except:
+        return 0.0
+
 @st.cache_data(ttl=60)  # Refresh prices at most once per minute
 def fetch_live_prices(tickers: tuple) -> dict:
     """Batch-fetch prices for a list of tickers in ONE yfinance call."""
@@ -17,18 +43,29 @@ def fetch_live_prices(tickers: tuple) -> dict:
         data = yf.download(list(tickers), period="1d", progress=False, auto_adjust=True)
         prices = {}
         if len(tickers) == 1:
-            # yf.download returns a flat DataFrame for a single ticker
             tick = tickers[0]
-            prices[tick] = float(data['Close'].iloc[-1]) if not data.empty else 0.0
+            if not data.empty and 'Close' in data.columns:
+                prices[tick] = float(data['Close'].iloc[-1])
+            else:
+                prices[tick] = get_price_robust(tick) # Fallback
         else:
             for tick in tickers:
                 try:
-                    prices[tick] = float(data['Close'][tick].dropna().iloc[-1])
+                    p = 0.0
+                    if 'Close' in data.columns:
+                        col = data['Close']
+                        if tick in col.columns:
+                            p = float(col[tick].dropna().iloc[-1])
+                        else:
+                            p = float(col.dropna().iloc[-1]) if not col.empty else 0.0
+                    
+                    if p <= 0: p = get_price_robust(tick)
+                    prices[tick] = p
                 except Exception:
-                    prices[tick] = 0.0
+                    prices[tick] = get_price_robust(tick)
         return prices
     except Exception:
-        return {t: 0.0 for t in tickers}
+        return {t: get_price_robust(t) for t in tickers}
 
 @st.cache_data(ttl=300)  # Cache market status for 5 minutes
 def get_cached_market_status() -> dict:
@@ -161,13 +198,18 @@ def render_quote_panel():
              if st.button("Close"):
                   st.session_state['show_quote_modal'] = False
                   st.rerun()
-         if q_ticker:
+          if q_ticker:
              try:
                  t = yf.Ticker(q_ticker)
-                 info = t.info
-                 cp = info.get('currentPrice', info.get('regularMarketPrice', 0))
+                 cp = get_price_robust(q_ticker)
                  
-                 st.markdown(f"**{info.get('longName', q_ticker)} ({q_ticker})** | **${cp:.2f}**")
+                 # info might still work for name even if inhibited for price
+                 try:
+                     name = t.info.get('longName', q_ticker)
+                 except:
+                     name = q_ticker
+
+                 st.markdown(f"**{name} ({q_ticker})** | **${cp:.2f}**")
                  
                  # The functional Buy/Sell buttons from the requirement
                  qb1, qb2, _ = st.columns([1, 1, 4])
@@ -434,8 +476,7 @@ def render_order_ticket(portfolio: PaperPortfolio):
         live_px_str = ""
         if ticker:
              try:
-                  t = yf.Ticker(ticker)
-                  p = t.info.get('currentPrice') or t.history(period="1d")['Close'].iloc[-1]
+                  p = get_price_robust(ticker)
                   est_cost = shares * (limit_px if limit_px else p)
                   live_px_str = f"Live Market Price: ${p:.2f}"
              except Exception:
